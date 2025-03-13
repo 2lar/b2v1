@@ -3,6 +3,7 @@ import { Note } from '../../../shared/types';
 import { notesApi } from '../services/api';
 import NoteForm from '../components/NoteForm';
 import NoteItem from '../components/NoteItem';
+import { FaStream, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSpinner, FaLightbulb } from 'react-icons/fa';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
@@ -75,14 +76,24 @@ const HomePage: React.FC = () => {
       <NoteForm onNoteAdded={handleNoteAdded} />
       
       <div className="notes-container">
-        <h2>Recent Thoughts</h2>
+        <h2><FaStream /> Recent Thoughts</h2>
         
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            <FaExclamationTriangle /> {error}
+          </div>
+        )}
         
         {loading ? (
-          <div className="loading-message">Loading...</div>
+          <div className="loading-message">
+            <FaSpinner />
+            <p>Loading your thoughts...</p>
+          </div>
         ) : notes.length === 0 ? (
-          <div className="empty-message">No thoughts yet. Add one above!</div>
+          <div className="empty-message">
+            <FaLightbulb />
+            <p>No thoughts yet. Add one above to start building your knowledge network!</p>
+          </div>
         ) : (
           <>
             <div className="notes-list">
@@ -102,7 +113,7 @@ const HomePage: React.FC = () => {
                   disabled={!pagination.hasPrevPage}
                   className="pagination-btn"
                 >
-                  Previous
+                  <FaChevronLeft /> Previous
                 </button>
                 
                 <span className="pagination-info">
@@ -114,7 +125,7 @@ const HomePage: React.FC = () => {
                   disabled={!pagination.hasNextPage}
                   className="pagination-btn"
                 >
-                  Next
+                  Next <FaChevronRight />
                 </button>
               </div>
             )}

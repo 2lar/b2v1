@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, ChatMode } from '../../../shared/types';
 import { queryApi, chatModesApi, llmApi } from '../services/api';
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaPaperPlane, FaRobot, FaExclamationTriangle, FaLink } from 'react-icons/fa';
 import './ChatInterface.css';
 
 const ChatInterface: React.FC = () => {
@@ -138,6 +138,7 @@ const ChatInterface: React.FC = () => {
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
+            <FaRobot />
             <p>No messages yet. Ask me something about your notes!</p>
           </div>
         ) : (
@@ -152,7 +153,7 @@ const ChatInterface: React.FC = () => {
               
               {message.sources && message.sources.length > 0 && (
                 <div className="message-sources">
-                  <h4>Sources:</h4>
+                  <h4><FaLink /> Sources:</h4>
                   <ul>
                     {message.sources.map((source, index) => (
                       <li key={index}>
@@ -169,7 +170,7 @@ const ChatInterface: React.FC = () => {
         
         {isLoading && (
           <div className="chat-message ai-message">
-            <div className="message-loading">Thinking...</div>
+            <div className="message-loading">Thinking</div>
           </div>
         )}
         
@@ -185,7 +186,7 @@ const ChatInterface: React.FC = () => {
           disabled={isLoading}
         />
         <button type="submit" disabled={isLoading || !query.trim()}>
-          Send
+          <FaPaperPlane /> Send
         </button>
         {selectedModeData && (
           <div className="mode-info">

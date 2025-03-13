@@ -1,5 +1,6 @@
 import React from 'react';
 import { Note } from '../../../shared/types';
+import { FaClock, FaPen, FaTrash } from 'react-icons/fa';
 import './NoteItem.css';
 
 interface NoteItemProps {
@@ -26,7 +27,9 @@ const NoteItem: React.FC<NoteItemProps> = ({ note, onEdit, onDelete }) => {
     <div className="note-item">
       <div className="note-content">{note.content}</div>
       <div className="note-footer">
-        <div className="note-timestamp">{formatDate(note.createdAt)}</div>
+        <div className="note-timestamp">
+          <FaClock size={12} /> {formatDate(note.createdAt)}
+        </div>
         {(onEdit || onDelete) && (
           <div className="note-actions">
             {onEdit && (
@@ -35,7 +38,7 @@ const NoteItem: React.FC<NoteItemProps> = ({ note, onEdit, onDelete }) => {
                 onClick={() => onEdit(note)}
                 aria-label="Edit note"
               >
-                Edit
+                <FaPen size={12} /> Edit
               </button>
             )}
             {onDelete && (
@@ -44,7 +47,7 @@ const NoteItem: React.FC<NoteItemProps> = ({ note, onEdit, onDelete }) => {
                 onClick={() => onDelete(note.id)}
                 aria-label="Delete note"
               >
-                Delete
+                <FaTrash size={12} /> Delete
               </button>
             )}
           </div>

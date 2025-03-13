@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Note } from '../../../shared/types';
 import { notesApi } from '../services/api';
+import { FaBrain, FaExclamationTriangle, FaPaperPlane } from 'react-icons/fa';
 import './NoteForm.css';
 
 interface NoteFormProps {
@@ -42,20 +43,24 @@ const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
 
   return (
     <div className="note-form-container">
-      <h2>Add New Thought</h2>
+      <h2><FaBrain /> Add New Thought</h2>
       
       <form className="note-form" onSubmit={handleSubmit}>
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            <FaExclamationTriangle /> {error}
+          </div>
+        )}
         
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="What's on your mind?"
+          placeholder="What's on your mind? Add your thoughts here to expand your knowledge network..."
           disabled={isSubmitting}
         />
         
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Adding...' : 'Add Thought'}
+          <FaPaperPlane /> {isSubmitting ? 'Adding...' : 'Add Thought'}
         </button>
       </form>
     </div>

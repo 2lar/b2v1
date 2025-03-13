@@ -7,8 +7,24 @@
   margin-bottom: 20px;
 }
 
+.chat-header h1 {
+  background: linear-gradient(90deg, var(--accent-primary), #9b59b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+}
+
+.chat-header h1 svg {
+  margin-right: 10px;
+  background: linear-gradient(90deg, var(--accent-primary), #9b59b6);
+  color: var(--accent-primary);
+}
+
 .chat-description {
-  color: #7f8c8d;
+  color: var(--text-secondary);
   margin-bottom: 20px;
 }
 
@@ -20,38 +36,63 @@
 
 .feature-card {
   flex: 1;
-  background-color: #f8f9fa;
-  border-left: 4px solid #3498db;
+  background-color: var(--card-bg);
+  border-left: 4px solid var(--accent-primary);
   padding: 15px;
   border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-3px);
 }
 
 .feature-card h3 {
   margin-top: 0;
   margin-bottom: 10px;
-  color: #2c3e50;
+  color: var(--text-primary);
   font-size: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.feature-card h3 svg {
+  margin-right: 8px;
+  color: var(--accent-primary);
 }
 
 .feature-card p {
   margin: 0;
-  color: #7f8c8d;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
 }
 
 .api-key-notice {
-  background-color: #fff8e1;
-  border-left: 4px solid #ffc107;
+  background-color: rgba(243, 156, 18, 0.1);
+  border-left: 4px solid var(--warning);
   padding: 10px 15px;
   margin-bottom: 20px;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.api-key-notice svg {
+  margin-right: 10px;
+  color: var(--warning);
+  flex-shrink: 0;
 }
 
 .api-key-notice p {
   margin: 0;
   font-size: 14px;
-  color: #7f6000;
+  color: var(--text-primary);
+}
+
+.api-key-notice strong {
+  color: var(--warning);
 }
 
 .chat-interface-container {
