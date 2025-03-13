@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import { ChatMessage } from '../../../shared/types';
+import { queryApi } from '../services/api';
 import './ChatInterface.css';
 
-const ChatInterface = () => {
-  const [query, setQuery] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+const ChatInterface: React.FC = () => {
+  const [query, setQuery] = useState<string>('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom of chat when messages update
   useEffect(() => {
@@ -15,13 +16,13 @@ const ChatInterface = () => {
     }
   }, [messages]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!query.trim() || isLoading) return;
     
     // Add user message
-    const userMessage = {
+    const userMessage: ChatMessage = {
       id: Date.now(),
       type: 'user',
       content: query
@@ -32,14 +33,14 @@ const ChatInterface = () => {
     
     try {
       // Send query to server
-      const response = await axios.post('/api/query', { query });
+      const response = await queryApi.sendQuery(query);
       
       // Add AI response
-      const aiMessage = {
+      const aiMessage: ChatMessage = {
         id: Date.now() + 1,
         type: 'ai',
-        content: response.data.response,
-        sources: response.data.sources
+        content: response.response,
+        sources: response.sources
       };
       
       setMessages(prevMessages => [...prevMessages, aiMessage]);
@@ -47,7 +48,7 @@ const ChatInterface = () => {
       console.error('Error sending query:', error);
       
       // Add error message
-      const errorMessage = {
+      const errorMessage: ChatMessage = {
         id: Date.now() + 1,
         type: 'error',
         content: 'Sorry, I encountered an error processing your request.'

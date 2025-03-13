@@ -1,23 +1,36 @@
 {
-    "name": "second-brain-simple",
-    "version": "0.1.0",
-    "description": "A simple second brain application with file-based storage",
-    "main": "server/index.js",
-    "scripts": {
-      "start": "node server/index.js",
-      "server": "nodemon server/index.js",
-      "client": "cd client && npm start",
-      "dev": "concurrently \"npm run server\" \"npm run client\"",
-      "install-all": "npm install && cd client && npm install",
-      "build": "cd client && npm run build"
-    },
-    "dependencies": {
-      "cors": "^2.8.5",
-      "express": "^4.18.2",
-      "openai": "^4.20.0"
-    },
-    "devDependencies": {
-      "concurrently": "^8.2.0",
-      "nodemon": "^2.0.22"
-    }
+  "name": "second-brain-simple",
+  "version": "0.1.0",
+  "description": "A simple second brain application with file-based storage",
+  "main": "server/dist/index.js",
+  "scripts": {
+    "start": "node server/dist/index.js",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd server && tsc && node scripts/copy-shared-types.js",
+    "build:client": "cd client && npm run build",
+    "server": "ts-node-dev --respawn --transpile-only server/src/index.ts",
+    "client": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "postinstall": "npm run build",
+    "lint": "eslint --ext .js,.ts,.tsx .",
+    "lint-fix": "eslint --ext .js,.ts,.tsx . --fix",
+    "prepare-types": "node scripts/prepare-types.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.3.1",
+    "concurrently": "^8.2.0",
+    "nodemon": "^2.0.22",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.1.3"
   }
+}

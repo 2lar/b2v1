@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { GraphData } from '../../../shared/types';
+import { graphApi } from '../services/api';
 import GraphVisualization from '../components/GraphVisualization';
 import './GraphPage.css';
 
-const GraphPage = () => {
-  const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+const GraphPage: React.FC = () => {
+  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], edges: [] });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     fetchGraphData();
@@ -15,8 +16,8 @@ const GraphPage = () => {
   const fetchGraphData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/graph');
-      setGraphData(response.data);
+      const response = await graphApi.getGraphData();
+      setGraphData(response);
       setError('');
     } catch (err) {
       console.error('Error fetching graph data:', err);
@@ -30,13 +31,32 @@ const GraphPage = () => {
     fetchGraphData();
   };
 
+  const handleRecalculate = async () => {
+    try {
+      setLoading(true);
+      await graphApi.recalculateConnections();
+      await fetchGraphData();
+      setError('');
+    } catch (err) {
+      console.error('Error recalculating connections:', err);
+      setError('Failed to recalculate connections. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="graph-page">
       <div className="graph-header">
         <h1>Knowledge Graph</h1>
-        <button onClick={handleRefresh} className="refresh-button">
-          Refresh
-        </button>
+        <div className="graph-actions">
+          <button onClick={handleRefresh} className="refresh-button">
+            Refresh
+          </button>
+          <button onClick={handleRecalculate} className="recalculate-button">
+            Recalculate Connections
+          </button>
+        </div>
       </div>
       
       {error && <div className="error-message">{error}</div>}

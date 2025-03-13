@@ -1,72 +1,57 @@
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #2c3e50;
-    color: white;
-    padding: 0 20px;
-    height: 60px;
+.note-form-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 30px;
   }
   
-  .navbar-brand h1 {
+  .note-form-container h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
     font-size: 1.5rem;
-    margin: 0;
+    color: #333;
   }
   
-  .navbar-nav {
+  .note-form {
     display: flex;
-    list-style: none;
+    flex-direction: column;
   }
   
-  .nav-item {
-    margin-left: 20px;
+  .note-form textarea {
+    min-height: 120px;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    resize: vertical;
   }
   
-  .nav-link {
-    display: flex;
-    align-items: center;
+  .note-form button {
+    align-self: flex-end;
+    padding: 10px 20px;
+    background-color: #3498db;
     color: white;
-    text-decoration: none;
-    transition: color 0.3s;
-    padding: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
   }
   
-  .nav-link:hover, .nav-link.active {
-    color: #3498db;
+  .note-form button:hover:not(:disabled) {
+    background-color: #2980b9;
   }
   
-  .nav-icon {
-    margin-right: 5px;
-    font-size: 1.2rem;
+  .note-form button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
   }
   
-  @media (max-width: 768px) {
-    .navbar {
-      flex-direction: column;
-      height: auto;
-      padding: 10px;
-    }
-    
-    .navbar-brand {
-      margin-bottom: 10px;
-    }
-    
-    .navbar-nav {
-      width: 100%;
-      justify-content: space-around;
-    }
-    
-    .nav-item {
-      margin: 0;
-    }
-    
-    .nav-link {
-      flex-direction: column;
-      font-size: 0.8rem;
-    }
-    
-    .nav-icon {
-      margin-right: 0;
-      margin-bottom: 2px;
-    }
+  .error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
   }

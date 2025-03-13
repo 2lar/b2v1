@@ -1,36 +1,69 @@
 .home-page {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-  
-  .notes-container {
-    margin-top: 30px;
-  }
-  
-  .notes-container h2 {
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  .notes-list {
-    margin-top: 20px;
-  }
-  
-  .loading-message, .empty-message {
-    text-align: center;
-    padding: 30px;
-    color: #7f8c8d;
-    font-style: italic;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  }
-  
-  .error-message {
-    color: #e74c3c;
-    padding: 15px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    background-color: #fadbd8;
-  }
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.notes-container {
+  margin-top: 30px;
+}
+
+.notes-container h2 {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.notes-list {
+  margin-top: 20px;
+}
+
+.loading-message, .empty-message {
+  text-align: center;
+  padding: 30px;
+  color: #7f8c8d;
+  font-style: italic;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.error-message {
+  color: #e74c3c;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  background-color: #fadbd8;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 10px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.pagination-btn:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  margin: 0 15px;
+  font-size: 14px;
+  color: #7f8c8d;
+}

@@ -1,101 +1,31 @@
-const fs = require('fs');
-const path = require('path');
-const llmClient = require('./llmClient');
+import { Note, Category, CategoriesData } from '../../../shared/types';
+import { readCategories, readNotes, writeCategories } from '../utils/fileHelpers';
+import { extractKeywords, calculateCosineSimilarity } from '../utils/textUtils';
+import * as llmClient from './llmClient';
 
-// Path to category data file
-const dataDir = path.join(__dirname, '../data');
-const categoriesPath = path.join(dataDir, 'categories.json');
-const notesPath = path.join(dataDir, 'notes.json');
-
-// Initialize categories file if it doesn't exist
-if (!fs.existsSync(categoriesPath)) {
-  fs.writeFileSync(categoriesPath, JSON.stringify({
-    categories: [],
-    noteCategoryMap: {},
-    hierarchy: {}
-  }));
+interface CategoryResult {
+  noteId: string;
+  categories: Category[];
 }
 
-// Read categories data
-const readCategoriesData = () => {
-  try {
-    const data = fs.readFileSync(categoriesPath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading categories data:', error);
-    return { categories: [], noteCategoryMap: {}, hierarchy: {} };
-  }
-};
+interface GeneratedCategories {
+  categories: Category[];
+}
 
-// Write categories data
-const writeCategoriesData = (data) => {
-  try {
-    fs.writeFileSync(categoriesPath, JSON.stringify(data, null, 2));
-    return true;
-  } catch (error) {
-    console.error('Error writing categories data:', error);
-    return false;
-  }
-};
-
-// Read notes
-const readNotes = () => {
-  try {
-    const data = fs.readFileSync(notesPath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading notes:', error);
-    return [];
-  }
-};
-
-/**
- * Simple function to extract keywords and potential categories from text
- * without using external NLP libraries
- */
-const extractKeywords = (text) => {
-  // Convert to lowercase and remove special characters
-  const cleanedText = text.toLowerCase().replace(/[^\w\s]/g, ' ');
-  
-  // Split into words
-  const words = cleanedText.split(/\s+/);
-  
-  // Remove common stop words
-  const stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours', 
-    'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 
-    'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 
-    'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 
-    'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 
-    'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 
-    'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 
-    'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 
-    'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 
-    'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 
-    'don', 'should', 'now'];
-  
-  const filteredWords = words.filter(word => 
-    word.length > 2 && !stopwords.includes(word)
-  );
-  
-  // Count word occurrences
-  const wordCounts = {};
-  filteredWords.forEach(word => {
-    wordCounts[word] = (wordCounts[word] || 0) + 1;
-  });
-  
-  // Sort by count
-  const sortedWords = Object.entries(wordCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([word]) => word);
-  
-  return sortedWords.slice(0, 10); // Return top 10 keywords
-};
+interface ParentCategoryResult {
+  sourceNoteId: string;
+  targetNoteId: string;
+  parentCategory: {
+    id: string;
+    name: string;
+  };
+}
 
 /**
  * Find existing categories that match keywords
  */
-const findMatchingCategories = (keywords, categories) => {
-  const matches = [];
+const findMatchingCategories = (keywords: string[], categories: Category[]): Category[] => {
+  const matches: Category[] = [];
   
   for (const category of categories) {
     // Check if any keyword is in the category name
@@ -120,7 +50,7 @@ const findMatchingCategories = (keywords, categories) => {
 /**
  * Generate categories using LLM
  */
-const generateCategoriesWithLLM = async (noteContent, existingCategories) => {
+const generateCategoriesWithLLM = async (noteContent: string, existingCategories: Category[]): Promise<GeneratedCategories | null> => {
   try {
     // Check if LLM is available
     const llmAvailable = await llmClient.isLlmAvailable();
@@ -156,7 +86,7 @@ Only respond with the JSON.`;
       // Extract JSON from response
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        return JSON.parse(jsonMatch[0]) as GeneratedCategories;
       }
     } catch (parseError) {
       console.error('Error parsing LLM response:', parseError);
@@ -169,43 +99,11 @@ Only respond with the JSON.`;
   }
 };
 
-// Simple implementation of cosine similarity for text
-const calculateSimilarity = (text1, text2) => {
-  // Convert texts to word frequency vectors
-  const getText1Words = text1.toLowerCase().split(/\W+/).filter(word => word.length > 2);
-  const getText2Words = text2.toLowerCase().split(/\W+/).filter(word => word.length > 2);
-  
-  // Get unique words from both texts
-  const uniqueWords = [...new Set([...getText1Words, ...getText2Words])];
-  
-  // Create vectors
-  const vector1 = uniqueWords.map(word => getText1Words.filter(w => w === word).length);
-  const vector2 = uniqueWords.map(word => getText2Words.filter(w => w === word).length);
-  
-  // Calculate cosine similarity
-  let dotProduct = 0;
-  let magnitude1 = 0;
-  let magnitude2 = 0;
-  
-  for (let i = 0; i < uniqueWords.length; i++) {
-    dotProduct += vector1[i] * vector2[i];
-    magnitude1 += vector1[i] * vector1[i];
-    magnitude2 += vector2[i] * vector2[i];
-  }
-  
-  magnitude1 = Math.sqrt(magnitude1);
-  magnitude2 = Math.sqrt(magnitude2);
-  
-  if (magnitude1 === 0 || magnitude2 === 0) return 0;
-  
-  return dotProduct / (magnitude1 * magnitude2);
-};
-
 /**
  * Assign categories to a note
  */
-const categorizeNote = async (note) => {
-  const categoriesData = readCategoriesData();
+export const categorizeNote = async (note: Note): Promise<CategoryResult> => {
+  const categoriesData = readCategories();
   const { categories, noteCategoryMap, hierarchy } = categoriesData;
   
   // Extract keywords from note content
@@ -214,12 +112,12 @@ const categorizeNote = async (note) => {
   // Find matching existing categories
   const matchingCategories = findMatchingCategories(keywords, categories);
   
-  let noteCategories = [];
+  let noteCategories: Category[] = [];
   
   // Try LLM categorization first
   const aiCategories = await generateCategoriesWithLLM(note.content, categories);
   
-  if (aiCategories && aiCategories.categories) {
+  if (aiCategories && aiCategories.categories && aiCategories.categories.length > 0) {
     // Process LLM-generated categories
     noteCategories = aiCategories.categories.map(cat => {
       // Check if this category already exists
@@ -258,10 +156,12 @@ const categorizeNote = async (note) => {
   }
   
   // Update categories and hierarchy
+  const updatedCategories = [...categories];
+  
   for (const category of noteCategories) {
     // Add category if it doesn't exist
-    if (!categories.some(c => c.id === category.id)) {
-      categories.push({
+    if (!updatedCategories.some(c => c.id === category.id)) {
+      updatedCategories.push({
         id: category.id,
         name: category.name,
         level: category.level || 0,
@@ -285,18 +185,26 @@ const categorizeNote = async (note) => {
   }
   
   // Update note category map and note counts
-  noteCategoryMap[note.id] = noteCategories.map(c => c.id);
+  const updatedNoteCategoryMap = { ...noteCategoryMap };
+  updatedNoteCategoryMap[note.id] = noteCategories.map(c => c.id);
   
   // Update note counts for categories
-  for (const categoryId of noteCategoryMap[note.id]) {
-    const category = categories.find(c => c.id === categoryId);
-    if (category) {
-      category.noteCount = (category.noteCount || 0) + 1;
+  for (const categoryId of updatedNoteCategoryMap[note.id]) {
+    const categoryIndex = updatedCategories.findIndex(c => c.id === categoryId);
+    if (categoryIndex !== -1) {
+      updatedCategories[categoryIndex] = {
+        ...updatedCategories[categoryIndex],
+        noteCount: (updatedCategories[categoryIndex].noteCount || 0) + 1
+      };
     }
   }
   
   // Save categories data
-  writeCategoriesData({ categories, noteCategoryMap, hierarchy });
+  writeCategories({ 
+    categories: updatedCategories, 
+    noteCategoryMap: updatedNoteCategoryMap, 
+    hierarchy 
+  });
   
   return {
     noteId: note.id,
@@ -307,30 +215,30 @@ const categorizeNote = async (note) => {
 /**
  * Get categories for a note
  */
-const getNoteCategories = (noteId) => {
-  const categoriesData = readCategoriesData();
+export const getNoteCategories = (noteId: string): Category[] => {
+  const categoriesData = readCategories();
   const { categories, noteCategoryMap } = categoriesData;
   
   const categoryIds = noteCategoryMap[noteId] || [];
   return categoryIds.map(id => {
     const category = categories.find(c => c.id === id);
     return category || null;
-  }).filter(Boolean);
+  }).filter((category): category is Category => category !== null);
 };
 
 /**
  * Get all categories
  */
-const getAllCategories = () => {
-  const categoriesData = readCategoriesData();
+export const getAllCategories = (): Category[] => {
+  const categoriesData = readCategories();
   return categoriesData.categories;
 };
 
 /**
  * Get category hierarchy
  */
-const getCategoryHierarchy = () => {
-  const categoriesData = readCategoriesData();
+export const getCategoryHierarchy = (): { categories: Category[], hierarchy: Record<string, string[]> } => {
+  const categoriesData = readCategories();
   return {
     categories: categoriesData.categories,
     hierarchy: categoriesData.hierarchy
@@ -340,8 +248,8 @@ const getCategoryHierarchy = () => {
 /**
  * Get notes by category
  */
-const getNotesByCategory = (categoryId) => {
-  const categoriesData = readCategoriesData();
+export const getNotesByCategory = (categoryId: string): Note[] => {
+  const categoriesData = readCategories();
   const { noteCategoryMap } = categoriesData;
   const notes = readNotes();
   
@@ -357,17 +265,17 @@ const getNotesByCategory = (categoryId) => {
  * Rebuild categories for all notes
  * This can be useful to run periodically to refine categories as new content is added
  */
-const rebuildAllCategories = async () => {
+export const rebuildAllCategories = async (): Promise<CategoryResult[]> => {
   const notes = readNotes();
-  const results = [];
+  const results: CategoryResult[] = [];
   
   // Clear existing category data
-  const categoriesData = {
+  const categoriesData: CategoriesData = {
     categories: [],
     noteCategoryMap: {},
     hierarchy: {}
   };
-  writeCategoriesData(categoriesData);
+  writeCategories(categoriesData);
   
   // Categorize each note
   for (const note of notes) {
@@ -382,14 +290,18 @@ const rebuildAllCategories = async () => {
  * Update categories when notes are connected
  * When two notes are connected, we may want to refine their categorization
  */
-const updateCategoriesFromConnection = async (sourceNoteId, targetNoteId, strength) => {
+export const updateCategoriesFromConnection = async (
+  sourceNoteId: string, 
+  targetNoteId: string, 
+  strength: number
+): Promise<ParentCategoryResult | null> => {
   const notes = readNotes();
   const sourceNote = notes.find(note => note.id === sourceNoteId);
   const targetNote = notes.find(note => note.id === targetNoteId);
   
   if (!sourceNote || !targetNote) return null;
   
-  const categoriesData = readCategoriesData();
+  const categoriesData = readCategories();
   const { categories, noteCategoryMap, hierarchy } = categoriesData;
   
   // Get existing categories for both notes
@@ -411,7 +323,7 @@ const updateCategoriesFromConnection = async (sourceNoteId, targetNoteId, streng
     // Check if there's considerable overlap in keywords but different categories
     const hasOverlap = sourceCategoryNames.some(name => 
       targetCategoryNames.some(targetName => 
-        calculateSimilarity(name, targetName) > 0.3
+        calculateCosineSimilarity(name, targetName) > 0.3
       )
     );
     
@@ -430,7 +342,7 @@ const updateCategoriesFromConnection = async (sourceNoteId, targetNoteId, streng
         );
         
         // Create or find this category
-        let parentCategoryId = null;
+        let parentCategoryId: string;
         const existingCategory = categories.find(c => 
           c.name.toLowerCase() === parentCategory.name.toLowerCase()
         );
@@ -477,13 +389,17 @@ const updateCategoriesFromConnection = async (sourceNoteId, targetNoteId, streng
             // Update note count
             const category = categories.find(c => c.id === parentCategoryId);
             if (category) {
-              category.noteCount = (category.noteCount || 0) + 1;
+              const categoryIndex = categories.indexOf(category);
+              categories[categoryIndex] = {
+                ...category,
+                noteCount: (category.noteCount || 0) + 1
+              };
             }
           }
         }
         
         // Save updated categories
-        writeCategoriesData({ categories, noteCategoryMap, hierarchy });
+        writeCategories({ categories, noteCategoryMap, hierarchy });
         
         return {
           sourceNoteId,
@@ -498,14 +414,4 @@ const updateCategoriesFromConnection = async (sourceNoteId, targetNoteId, streng
   }
   
   return null;
-};
-
-module.exports = {
-  categorizeNote,
-  getNoteCategories,
-  getAllCategories,
-  getCategoryHierarchy,
-  getNotesByCategory,
-  rebuildAllCategories,
-  updateCategoriesFromConnection
 };

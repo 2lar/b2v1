@@ -18,8 +18,49 @@
     white-space: pre-wrap;
   }
   
+  .note-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 10px;
+    margin-top: 10px;
+  }
+  
   .note-timestamp {
     font-size: 12px;
     color: #7f8c8d;
-    text-align: right;
+  }
+  
+  .note-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .edit-button, .delete-button {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+  }
+  
+  .edit-button {
+    color: #3498db;
+    border: 1px solid #3498db;
+  }
+  
+  .edit-button:hover {
+    background-color: #3498db;
+    color: white;
+  }
+  
+  .delete-button {
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+  }
+  
+  .delete-button:hover {
+    background-color: #e74c3c;
+    color: white;
   }

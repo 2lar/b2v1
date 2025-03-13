@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { Note } from '../../../shared/types';
+import { notesApi } from '../services/api';
 import './NoteForm.css';
 
-const NoteForm = ({ onNoteAdded }) => {
-  const [content, setContent] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+interface NoteFormProps {
+  onNoteAdded?: (note: Note) => void;
+}
 
-  const handleSubmit = async (e) => {
+const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
+  const [content, setContent] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate
@@ -20,12 +25,12 @@ const NoteForm = ({ onNoteAdded }) => {
     setError('');
     
     try {
-      const response = await axios.post('/api/notes', { content });
+      const response = await notesApi.createNote(content);
       
       // Clear form and notify parent
       setContent('');
       if (onNoteAdded) {
-        onNoteAdded(response.data.note);
+        onNoteAdded(response.note);
       }
     } catch (err) {
       setError('Failed to add note. Please try again.');

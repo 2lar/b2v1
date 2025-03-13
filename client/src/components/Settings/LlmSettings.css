@@ -146,3 +146,45 @@
     padding: 30px;
     color: #6c757d;
   }
+
+  .advanced-settings {
+    margin-top: 15px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+  }
+  
+  .advanced-settings summary {
+    padding: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+  }
+  
+  .advanced-settings summary:hover {
+    background-color: #e9ecef;
+  }
+  
+  .advanced-settings-content {
+    padding: 15px;
+  }
+  
+  .setting-value {
+    margin-left: 10px;
+    font-weight: 500;
+  }
+  
+  input[type="range"] {
+    width: 70%;
+    margin-right: 10px;
+  }
+  
+  input[type="number"] {
+    width: 100px;
+  }
+  
+  .llm-settings-loading {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+  }

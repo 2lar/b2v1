@@ -1,17 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import cytoscape from 'cytoscape';
+import cytoscape, { Core, NodeSingular } from 'cytoscape';
 import cola from 'cytoscape-cola';
+import { GraphData } from '../../../shared/types';
 import './GraphVisualization.css';
 
 // Register the cola layout
 cytoscape.use(cola);
 
-const GraphVisualization = ({ data }) => {
-  const containerRef = useRef(null);
-  const cyRef = useRef(null);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
-  const [hoveredNode, setHoveredNode] = useState(null);
+interface GraphVisualizationProps {
+  data: GraphData;
+}
+
+interface DisplayNode {
+  id: string;
+  content: string;
+  label: string;
+  createdAt: string;
+}
+
+const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cyRef = useRef<Core | null>(null);
+  const [selectedNode, setSelectedNode] = useState<DisplayNode | null>(null);
+  const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false);
+  const [hoveredNode, setHoveredNode] = useState<DisplayNode | null>(null);
 
   // Initialize cytoscape once on component mount
   useEffect(() => {
@@ -33,7 +45,7 @@ const GraphVisualization = ({ data }) => {
             'border-width': 2,
             'border-color': '#2980b9',
             'transition-property': 'background-color, border-width, border-color, width, height',
-            'transition-duration': '0.2s'
+            'transition-duration': 200
           }
         },
         {
@@ -44,7 +56,7 @@ const GraphVisualization = ({ data }) => {
             'curve-style': 'bezier',
             'opacity': 0.7,
             'transition-property': 'width, line-color',
-            'transition-duration': '0.2s'
+            'transition-duration': 200
           }
         },
         {
@@ -99,8 +111,8 @@ const GraphVisualization = ({ data }) => {
     
     const cy = cyRef.current;
     
-    const handleNodeTap = (event) => {
-      const node = event.target;
+    const handleNodeTap = (event: cytoscape.EventObject) => {
+      const node = event.target as NodeSingular;
       
       if (selectedNode && selectedNode.id === node.id()) {
         // If clicking the same node, toggle pin state
@@ -117,8 +129,8 @@ const GraphVisualization = ({ data }) => {
       }
     };
     
-    const handleNodeMouseOver = (event) => {
-      const node = event.target;
+    const handleNodeMouseOver = (event: cytoscape.EventObject) => {
+      const node = event.target as NodeSingular;
       if (!isSidebarPinned) {
         setHoveredNode({
           id: node.id(),
@@ -135,7 +147,7 @@ const GraphVisualization = ({ data }) => {
       }
     };
     
-    const handleBackgroundTap = (event) => {
+    const handleBackgroundTap = (event: cytoscape.EventObject) => {
       // If clicking the background (not a node)
       if (event.target === cy) {
         // Unpin sidebar if it's pinned
@@ -170,54 +182,49 @@ const GraphVisualization = ({ data }) => {
     // Check if we have actual data to show
     if (!data.nodes || !data.edges || data.nodes.length === 0) return;
     
-    // Convert to cytoscape format
-    const elements = [
-      ...data.nodes.map(node => ({
-        data: {
-          id: node.id,
-          label: node.label,
-          content: node.content,
-          createdAt: node.createdAt
-        },
-        group: 'nodes',
-      })),
-      ...data.edges.map(edge => ({
-        data: {
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          strength: edge.strength * 5, // Scale up for visibility
-        },
-        group: 'edges',
-      })),
-    ];
-
     // Update elements
     cy.elements().remove();
-    cy.add(elements);
+    cy.add(data.nodes.map(node => ({
+      data: {
+        id: node.id,
+        label: node.label,
+        content: node.content,
+        createdAt: node.createdAt
+      },
+      group: 'nodes',
+    })));
+    
+    cy.add(data.edges.map(edge => ({
+      data: {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        strength: edge.strength * 5, // Scale up for visibility
+      },
+      group: 'edges',
+    })));
     
     // Apply layout
     const layout = cy.layout({
-      name: 'cola',
-      animate: true,
-      refresh: 1,
-      maxSimulationTime: 4000,
-      nodeSpacing: 40,
-      edgeLength: function(edge) {
+        name: 'cola' as any, // Type assertion for layout name
+        refresh: 1,
+        maxSimulationTime: 4000,
+        nodeSpacing: 40,
+        edgeLength: (edge: any) => {
         return 100 / (edge.data('strength') || 1);
-      },
-      fit: true,
-      padding: 30,
-    });
+        },
+        fit: true,
+        padding: 30,
+    } as any); // Type assertion for layout options
     
     layout.run();
   }, [data]); // Only re-run when data changes
 
   // Format date for display
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     if (!dateString) return '';
     
-    const options = { 
+    const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric',
@@ -267,6 +274,7 @@ const GraphVisualization = ({ data }) => {
                     setIsSidebarPinned(false);
                     setSelectedNode(null);
                   }}
+                  aria-label="Close sidebar"
                 >
                   ×
                 </button>

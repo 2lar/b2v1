@@ -2,7 +2,7 @@ import React from 'react';
 import ChatInterface from '../components/ChatInterface';
 import './ChatPage.css';
 
-const ChatPage = () => {
+const ChatPage: React.FC = () => {
   return (
     <div className="chat-page">
       <div className="chat-header">
@@ -14,8 +14,8 @@ const ChatPage = () => {
       
       <div className="api-key-notice">
         <p>
-          <strong>Note:</strong> For full AI functionality, you need to add your OpenAI API key to the 
-          server's environment variables. See README for instructions.
+          <strong>Note:</strong> For full AI functionality, you need to add your Gemini API key in the 
+          server's environment variables or configure it in the Settings page.
         </p>
       </div>
       
