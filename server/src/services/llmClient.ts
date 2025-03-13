@@ -3,6 +3,7 @@ import axios from 'axios';
 import { LlmConfig } from '../../../shared/types';
 import { readLlmConfig, writeLlmConfig } from '../utils/fileHelpers';
 import { extractKeywords } from '../utils/textUtils';
+import { getChatModeById, getDefaultChatMode } from '../../data/chatModes';
 
 interface GenerateOptions {
   temperature?: number;
@@ -16,6 +17,7 @@ let currentConfig = readLlmConfig();
 // Set default values for Gemini
 const defaultGeminiConfig = {
   model: "gemini-2.0-flash",
+  selectedAgentId: "default",
   generationConfig: {
     temperature: 0.7,
     maxOutputTokens: 1000,
@@ -170,6 +172,11 @@ export const updateConfig = (newConfig: Partial<LlmConfig>): boolean => {
   try {
     currentConfig = { ...currentConfig, ...newConfig };
     
+    // Make sure we have a default selectedAgentId if not provided
+    if (!currentConfig.selectedAgentId) {
+      currentConfig.selectedAgentId = 'default';
+    }
+    
     // Initialize clients if needed
     if (currentConfig.provider === 'gemini' && currentConfig.geminiApiKey) {
       try {
@@ -229,9 +236,17 @@ export const getConfig = (): Omit<LlmConfig, 'geminiApiKey'> & { geminiApiKey: s
   };
 };
 
+/**
+ * Get the default agent ID from config
+ */
+export const getDefaultAgentId = (): string => {
+  return currentConfig.selectedAgentId || 'default';
+};
+
 export default {
   generateText,
   updateConfig,
   getConfig,
   isLlmAvailable,
+  getDefaultAgentId,
 };

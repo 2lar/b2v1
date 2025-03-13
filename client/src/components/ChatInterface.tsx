@@ -1,13 +1,59 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage } from '../../../shared/types';
-import { queryApi } from '../services/api';
+import { ChatMessage, ChatMode } from '../../../shared/types';
+import { queryApi, chatModesApi, llmApi } from '../services/api';
+import { FaInfoCircle } from 'react-icons/fa';
 import './ChatInterface.css';
 
 const ChatInterface: React.FC = () => {
   const [query, setQuery] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [modes, setModes] = useState<ChatMode[]>([]);
+  const [currentMode, setCurrentMode] = useState<string>('default');
+  const [selectedModeData, setSelectedModeData] = useState<ChatMode | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch chat modes and settings on component mount
+  useEffect(() => {
+    fetchChatModes();
+    fetchSettings();
+  }, []);
+
+  // Fetch user settings to get the default agent
+  const fetchSettings = async () => {
+    try {
+      const config = await llmApi.getConfig();
+      if (config.selectedAgentId) {
+        setCurrentMode(config.selectedAgentId);
+      }
+    } catch (error) {
+      console.error('Error fetching LLM config:', error);
+    }
+  };
+
+  // Fetch available chat modes
+  const fetchChatModes = async () => {
+    try {
+      const modesData = await chatModesApi.getAllModes();
+      setModes(modesData);
+      
+      // Set mode data once we have both the modes and the default mode ID
+      if (modesData.length > 0) {
+        const defaultMode = modesData.find(mode => mode.id === currentMode) || modesData[0];
+        setSelectedModeData(defaultMode);
+      }
+    } catch (error) {
+      console.error('Error fetching chat modes:', error);
+    }
+  };
+
+  // Update selected mode data when currentMode changes
+  useEffect(() => {
+    if (modes.length > 0) {
+      const modeData = modes.find(mode => mode.id === currentMode) || modes[0];
+      setSelectedModeData(modeData);
+    }
+  }, [currentMode, modes]);
 
   // Scroll to bottom of chat when messages update
   useEffect(() => {
@@ -15,6 +61,11 @@ const ChatInterface: React.FC = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Handle mode change
+  const handleModeChange = (modeId: string) => {
+    setCurrentMode(modeId);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,22 +76,24 @@ const ChatInterface: React.FC = () => {
     const userMessage: ChatMessage = {
       id: Date.now(),
       type: 'user',
-      content: query
+      content: query,
+      modeId: currentMode
     };
     
     setMessages(prevMessages => [...prevMessages, userMessage]);
     setIsLoading(true);
     
     try {
-      // Send query to server
-      const response = await queryApi.sendQuery(query);
+      // Send query to server with selected mode
+      const response = await queryApi.sendQuery(query, currentMode);
       
       // Add AI response
       const aiMessage: ChatMessage = {
         id: Date.now() + 1,
         type: 'ai',
         content: response.response,
-        sources: response.sources
+        sources: response.sources,
+        modeId: response.modeId || currentMode
       };
       
       setMessages(prevMessages => [...prevMessages, aiMessage]);
@@ -63,6 +116,25 @@ const ChatInterface: React.FC = () => {
 
   return (
     <div className="chat-container">
+      <div className="chat-header">
+        <div className="mode-selector">
+          {modes.map(mode => (
+            <button
+              key={mode.id}
+              className={`mode-button ${currentMode === mode.id ? 'active' : ''}`}
+              onClick={() => handleModeChange(mode.id)}
+            >
+              {mode.name}
+            </button>
+          ))}
+        </div>
+        {selectedModeData && (
+          <div className="mode-description">
+            {selectedModeData.description}
+          </div>
+        )}
+      </div>
+      
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
@@ -109,12 +181,17 @@ const ChatInterface: React.FC = () => {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask me about your notes..."
+          placeholder={`Ask ${selectedModeData?.name || 'the assistant'} a question...`}
           disabled={isLoading}
         />
         <button type="submit" disabled={isLoading || !query.trim()}>
           Send
         </button>
+        {selectedModeData && (
+          <div className="mode-info">
+            <FaInfoCircle title={selectedModeData.description} />
+          </div>
+        )}
       </form>
     </div>
   );

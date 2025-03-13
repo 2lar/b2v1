@@ -7,6 +7,7 @@ import { graphRouter } from './routes/graph';
 import { queryRouter } from './routes/query';
 import { llmRouter } from './routes/llm';
 import { categoryRouter } from './routes/category';
+import { chatModesRouter } from './routes/chatModes';
 import { ensureDataDirectory } from './utils/fileHelpers';
 
 // Load environment variables
@@ -35,6 +36,7 @@ app.use('/api/graph', graphRouter);
 app.use('/api/query', queryRouter);
 app.use('/api/llm', llmRouter);
 app.use('/api/categories', categoryRouter);
+app.use('/api/chatModes', chatModesRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

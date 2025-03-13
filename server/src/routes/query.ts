@@ -2,7 +2,8 @@ import express from 'express';
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import { readNotes, readLlmConfig } from '../utils/fileHelpers';
 import { calculateSimilarity } from '../utils/textUtils';
-import { QueryResponse } from '../../../shared/types';
+import { QueryResponse, QueryRequest } from '../../../shared/types';
+import { getDefaultChatMode, getChatModeById } from '../../data/chatModes';
 
 export const queryRouter = express.Router();
 
@@ -17,20 +18,51 @@ if ((config.geminiApiKey || process.env.GEMINI_API_KEY) && config.provider === '
   console.log('Gemini client initialized for query router');
 }
 
+/**
+ * Process a template string by replacing variable placeholders
+ */
+function processTemplate(template: string, variables: Record<string, string>): string {
+  let processed = template;
+  
+  // Basic template processing
+  for (const [key, value] of Object.entries(variables)) {
+    // Replace {{variable}} pattern
+    const pattern = new RegExp(`{{${key}}}`, 'g');
+    processed = processed.replace(pattern, value);
+    
+    // Handle conditional blocks {{#if variable}}content{{/if}}
+    const ifPattern = new RegExp(`{{#if ${key}}}([\\s\\S]*?){{/if}}`, 'g');
+    if (value) {
+      processed = processed.replace(ifPattern, '$1');
+    } else {
+      processed = processed.replace(ifPattern, '');
+    }
+  }
+  
+  // Process remaining conditional blocks - treat as false and remove
+  processed = processed.replace(/{{#if [^}]*}}[\s\S]*?{{\/if}}/g, '');
+  
+  return processed;
+}
+
 // Query the LLM
 queryRouter.post('/', async (req, res) => {
   try {
-    const { query } = req.body;
+    const { query, modeId } = req.body as QueryRequest;
     
     if (!query) {
       return res.status(400).json({ error: 'Query is required' });
     }
     
+    // Get chat mode (default if not specified)
+    const chatMode = modeId ? getChatModeById(modeId) : getDefaultChatMode();
+    
     // If Gemini isn't configured, return a simple response
     if (!geminiClient) {
       return res.json({ 
         response: "I'm in offline mode. Configure your Gemini API key in the Settings page to enable AI responses.",
-        sources: []
+        sources: [],
+        modeId: chatMode?.id
       } as QueryResponse);
     }
     
@@ -48,22 +80,20 @@ queryRouter.post('/', async (req, res) => {
     // Create context from relevant notes
     let context = '';
     if (relevantNotes.length > 0) {
-      context = "Here are some notes that might be relevant:\n\n" +
-        relevantNotes.map((note, i) => 
-          `[${i+1}] ${note.content}`
-        ).join('\n\n');
+      context = relevantNotes.map((note, i) => 
+        `[${i+1}] ${note.content}`
+      ).join('\n\n');
     }
     
     // Get the model name from config or use default
     const modelName = config.model || "gemini-2.0-flash";
     const model = geminiClient.getGenerativeModel({ model: modelName });
     
-    // Create prompt
-    const prompt = `You are a helpful assistant that answers questions based on the user's notes.
-      
-${context}
-
-Query: ${query}`;
+    // Process the prompt template with variables
+    const prompt = processTemplate(chatMode?.promptTemplate || getDefaultChatMode().promptTemplate, {
+      query,
+      context
+    });
     
     // Generate content with more specific options
     const result = await model.generateContent({
@@ -102,7 +132,8 @@ Query: ${query}`;
         id: note.id,
         content: note.content,
         relevance: note.relevance
-      }))
+      })),
+      modeId: chatMode?.id
     };
     
     res.json(response);
@@ -131,11 +162,14 @@ Query: ${query}`;
 // Simple query without AI (for testing or if Gemini is not configured)
 queryRouter.post('/simple', (req, res) => {
   try {
-    const { query } = req.body;
+    const { query, modeId } = req.body as QueryRequest;
     
     if (!query) {
       return res.status(400).json({ error: 'Query is required' });
     }
+    
+    // Get chat mode (default if not specified)
+    const chatMode = modeId ? getChatModeById(modeId) : getDefaultChatMode();
     
     // Find relevant notes
     const notes = readNotes();
@@ -156,7 +190,8 @@ queryRouter.post('/simple', (req, res) => {
         id: note.id,
         content: note.content,
         relevance: note.relevance
-      }))
+      })),
+      modeId: chatMode?.id
     };
     
     res.json(response);

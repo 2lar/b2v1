@@ -5,7 +5,8 @@ import {
   GraphData, 
   Category, 
   LlmConfig, 
-  QueryResponse
+  QueryResponse,
+  ChatMode
 } from '../../../shared/types';
 
 // Create axios instance with default config
@@ -147,15 +148,29 @@ export const llmApi = {
   }
 };
 
-// Query API
-export const queryApi = {
-  sendQuery: async (query: string): Promise<QueryResponse> => {
-    const response = await api.post<QueryResponse>('/query', { query });
+// Chat Modes API
+export const chatModesApi = {
+  getAllModes: async (): Promise<ChatMode[]> => {
+    const response = await api.get<ChatMode[]>('/chatModes');
     return response.data;
   },
   
-  sendSimpleQuery: async (query: string): Promise<QueryResponse> => {
-    const response = await api.post<QueryResponse>('/query/simple', { query });
+  getMode: async (id: string): Promise<ChatMode> => {
+    const response = await api.get<ChatMode>(`/chatModes/${id}`);
+    return response.data;
+  }
+};
+
+
+// Query API
+export const queryApi = {
+  sendQuery: async (query: string, modeId?: string): Promise<QueryResponse> => {
+    const response = await api.post<QueryResponse>('/query', { query, modeId });
+    return response.data;
+  },
+  
+  sendSimpleQuery: async (query: string, modeId?: string): Promise<QueryResponse> => {
+    const response = await api.post<QueryResponse>('/query/simple', { query, modeId });
     return response.data;
   }
 };
@@ -165,5 +180,6 @@ export default {
   graphApi,
   categoryApi,
   llmApi,
-  queryApi
+  queryApi,
+  chatModesApi
 };

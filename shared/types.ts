@@ -63,6 +63,7 @@ export interface Note {
   }
   
   export interface QueryResponse {
+    modeId?: string;
     response: string;
     sources: {
       id: string;
@@ -76,15 +77,47 @@ export interface Note {
     geminiApiKey: string;
     localLlmUrl: string;
     localLlmModel: string;
-    model?: string; // For Gemini model selection
+    model?: string;
+    selectedAgentId?: string; // ID of the selected agent/chat mode
     generationConfig?: {
-      temperature?: number;
-      maxOutputTokens?: number;
-      topP?: number;
-      topK?: number;
+      temperature: number;
+      maxOutputTokens: number;
+      topP: number;
+      topK: number;
     };
     safetySettings?: Array<{
       category: string;
       threshold: string;
     }>;
+  }
+
+  export interface ChatMode {
+    id: string;
+    name: string;
+    description: string;
+    promptTemplate: string;
+    icon?: string; // Optional icon identifier (for UI)
+  }
+  
+  /**
+   * Updated Query Request with chat mode
+   */
+  export interface QueryRequest {
+    query: string;
+    modeId?: string; // The selected chat mode ID
+  }
+  
+  /**
+   * Update ChatMessage to potentially include the mode
+   */
+  export interface ChatMessage {
+    id: number;
+    type: 'user' | 'ai' | 'error';
+    content: string;
+    sources?: Array<{
+      id: string;
+      content: string;
+      relevance: number;
+    }>;
+    modeId?: string; // Track which mode was used
   }

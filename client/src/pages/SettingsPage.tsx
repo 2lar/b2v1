@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import LlmSettings from '../components/Settings/LlmSettings';
+import ChatModeSettings from '../components/Settings/ChatModeSettings';
 import { categoryApi } from '../services/api';
 import './SettingsPage.css';
 
@@ -44,6 +45,11 @@ const SettingsPage: React.FC = () => {
       </section>
       
       <section>
+        <h2>Chat Modes</h2>
+        <ChatModeSettings />
+      </section>
+      
+      <section>
         <h2>Category Management</h2>
         <div className="category-settings">
           <p>
@@ -72,6 +78,9 @@ const SettingsPage: React.FC = () => {
           <p>A personal knowledge management system that helps you organize your thoughts and ideas.</p>
           <p>This application automatically creates connections between your notes and categorizes them using AI or simple text analysis.</p>
           
+          <h4>Chat Modes</h4>
+          <p>Choose from different AI personalities to interact with your notes. Each mode offers a unique perspective.</p>
+          
           <h4>Using Free AI Options</h4>
           <p>This application supports two free AI options:</p>
           <ul>
@@ -83,7 +92,7 @@ const SettingsPage: React.FC = () => {
           <p>All your data is stored locally in JSON files within the application folder. No external database required.</p>
           
           <h4>Version</h4>
-          <p>Version 1.0.0 - TypeScript Edition</p>
+          <p>Version 1.1.0 - With Chat Modes</p>
         </div>
       </section>
     </div>

@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { LlmConfig } from '../../../../shared/types';
-import { llmApi } from '../../services/api';
+import { LlmConfig, ChatMode } from '../../../../shared/types';
+import { llmApi, chatModesApi } from '../../services/api';
 import './LlmSettings.css';
 
 const LlmSettings: React.FC = () => {
-  const [config, setConfig] = useState<LlmConfig>({
+  // Define a default config to ensure all required fields are present
+  const defaultConfig: LlmConfig = {
     provider: 'gemini',
     geminiApiKey: '',
     localLlmUrl: 'http://localhost:11434/api/generate',
     localLlmModel: 'mistral',
     model: 'gemini-2.0-flash',
+    selectedAgentId: 'default',
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 1000,
       topP: 1,
       topK: 1
     }
-  });
+  };
   
+  const [config, setConfig] = useState<LlmConfig>(defaultConfig);
+  const [chatModes, setChatModes] = useState<ChatMode[]>([]);
   const [isAvailable, setIsAvailable] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -27,19 +31,43 @@ const LlmSettings: React.FC = () => {
   useEffect(() => {
     fetchConfig();
     checkLlmStatus();
+    fetchChatModes();
   }, []);
 
   const fetchConfig = async () => {
     try {
       setLoading(true);
       const response = await llmApi.getConfig();
-      setConfig(response as LlmConfig);
+      
+      // Ensure all required fields are present by merging with default config
+      setConfig({
+        ...defaultConfig,
+        ...response,
+        // Make sure generationConfig is fully defined
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+          topP: 1,
+          topK: 1,
+          ...(response.generationConfig || {})
+        }
+      });
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching LLM config:', err);
       setError('Failed to load LLM configuration');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChatModes = async () => {
+    try {
+      const modes = await chatModesApi.getAllModes();
+      setChatModes(modes);
+    } catch (err) {
+      console.error('Error fetching chat modes:', err);
     }
   };
 
@@ -67,20 +95,32 @@ const LlmSettings: React.FC = () => {
 
   const handleAdvancedSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    let parsedValue: number | string = value;
+    let parsedValue: number = parseFloat(value);
     
-    // Convert to number for numeric inputs
-    if (e.target.type === 'number' || e.target.type === 'range') {
-      parsedValue = parseFloat(value);
+    // Ensure the value is a valid number
+    if (isNaN(parsedValue)) {
+      parsedValue = e.target.type === 'range' ? 0.7 : 1000; // Default values
     }
     
-    setConfig(prev => ({
-      ...prev,
-      generationConfig: {
-        ...prev.generationConfig,
+    setConfig(prev => {
+      // Create a deep copy of the generationConfig to avoid mutation
+      const generationConfig = {
+        // Default values in case generationConfig is undefined
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+        topP: 1,
+        topK: 1,
+        // Include existing values
+        ...(prev.generationConfig || {}),
+        // Set the new value
         [name]: parsedValue
-      }
-    }));
+      };
+      
+      return {
+        ...prev,
+        generationConfig
+      };
+    });
     
     // Clear messages when user changes input
     setSuccess(null);
@@ -95,6 +135,18 @@ const LlmSettings: React.FC = () => {
     }));
     
     // Clear messages when user changes provider
+    setSuccess(null);
+    setError(null);
+  };
+
+  const handleAgentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedAgentId = e.target.value;
+    setConfig(prev => ({
+      ...prev,
+      selectedAgentId
+    }));
+    
+    // Clear messages when user changes default agent
     setSuccess(null);
     setError(null);
   };
@@ -119,7 +171,6 @@ const LlmSettings: React.FC = () => {
     }
   };
   
-
   if (loading) {
     return <div className="llm-settings-loading">Loading LLM settings...</div>;
   }
@@ -152,6 +203,26 @@ const LlmSettings: React.FC = () => {
             <option value="gemini">Google Gemini (Free tier available)</option>
             <option value="local">Local LLM (Ollama)</option>
           </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="selectedAgentId">Default Chat Mode</label>
+          <select
+            id="selectedAgentId"
+            name="selectedAgentId"
+            value={config.selectedAgentId || 'default'}
+            onChange={handleAgentChange}
+            disabled={saving}
+          >
+            {chatModes.map(mode => (
+              <option key={mode.id} value={mode.id}>
+                {mode.name}
+              </option>
+            ))}
+          </select>
+          <div className="form-help">
+            This will be the default chat mode when starting a new conversation
+          </div>
         </div>
         
         {config.provider === 'gemini' && (
