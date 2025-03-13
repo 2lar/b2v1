@@ -1,0 +1,25 @@
+.note-item {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: box-shadow 0.3s;
+  }
+  
+  .note-item:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .note-content {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+  }
+  
+  .note-timestamp {
+    font-size: 12px;
+    color: #7f8c8d;
+    text-align: right;
+  }

@@ -1,0 +1,31 @@
+.chat-page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .chat-header {
+    margin-bottom: 20px;
+  }
+  
+  .chat-description {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+  }
+  
+  .api-key-notice {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+  }
+  
+  .api-key-notice p {
+    margin: 0;
+    font-size: 14px;
+    color: #7f6000;
+  }
+  
+  .chat-interface-container {
+    margin-top: 20px;
+  }

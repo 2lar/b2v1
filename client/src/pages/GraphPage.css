@@ -1,0 +1,72 @@
+.graph-page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .graph-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .refresh-button {
+    padding: 8px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .refresh-button:hover {
+    background-color: #2980b9;
+  }
+  
+  .graph-info {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .graph-info p {
+    margin: 0;
+    padding: 5px 10px;
+  }
+  
+  .graph-tip {
+    flex-basis: 100%;
+    margin-top: 10px;
+    font-style: italic;
+    color: #7f8c8d;
+  }
+  
+  .graph-visualization-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+  }
+  
+  .loading-container, .empty-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    text-align: center;
+    color: #7f8c8d;
+  }
+  
+  .error-message {
+    color: #e74c3c;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    background-color: #fadbd8;
+  }

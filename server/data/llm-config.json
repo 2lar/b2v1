@@ -1,0 +1,6 @@
+{
+  "provider": "none",
+  "geminiApiKey": "",
+  "localLlmUrl": "http://localhost:11434/api/generate",
+  "localLlmModel": "mistral"
+}
