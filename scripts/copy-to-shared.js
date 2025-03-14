@@ -1,34 +1,19 @@
 const fs = require('fs');
 const path = require('path');
 
-// Define paths relative to the current script
-const serverDir = path.join(__dirname, '..');
-const rootDir = path.join(serverDir, '..');
-const serverDistPath = path.join(serverDir, 'dist/shared');
-const sharedTypesPath = path.join(rootDir, 'shared/types.ts');
+// Define paths
+const rootDir = path.join(__dirname, '..');
+const sharedDir = path.join(rootDir, 'shared');
 
-console.log('Server directory:', serverDir);
-console.log('Root directory:', rootDir);
-console.log('Server dist path:', serverDistPath);
-console.log('Shared types path:', sharedTypesPath);
-
-// Create the directory if it doesn't exist
-if (!fs.existsSync(serverDistPath)) {
-  fs.mkdirSync(serverDistPath, { recursive: true });
-  console.log(`Created directory: ${serverDistPath}`);
+// Create shared directory if it doesn't exist
+if (!fs.existsSync(sharedDir)) {
+  fs.mkdirSync(sharedDir, { recursive: true });
+  console.log(`Created shared directory: ${sharedDir}`);
 }
 
-// Create shared directory in root if it doesn't exist
-const rootSharedDir = path.join(rootDir, 'shared');
-if (!fs.existsSync(rootSharedDir)) {
-  fs.mkdirSync(rootSharedDir, { recursive: true });
-  console.log(`Created shared directory in root: ${rootSharedDir}`);
-}
-
-// Create a basic types file if it doesn't exist
-if (!fs.existsSync(sharedTypesPath)) {
-  console.log(`Creating basic types file at: ${sharedTypesPath}`);
-  const basicTypesContent = `
+// Create types.ts file
+const typesPath = path.join(sharedDir, 'types.ts');
+const typesContent = `
 /**
  * Note model representing a user's thought or idea
  */
@@ -161,18 +146,8 @@ export interface QueryResponse {
     relevance: number;
   }>;
   modeId?: string;
-}`;
-
-  fs.writeFileSync(sharedTypesPath, basicTypesContent);
-  console.log(`Created basic types file at ${sharedTypesPath}`);
 }
+`;
 
-// Copy the file
-try {
-  const destPath = path.join(serverDistPath, 'types.ts');
-  fs.copyFileSync(sharedTypesPath, destPath);
-  console.log(`Successfully copied shared types from ${sharedTypesPath} to ${destPath}`);
-} catch (err) {
-  console.error('Error copying shared types:', err);
-  process.exit(1);
-}
+fs.writeFileSync(typesPath, typesContent);
+console.log(`Created types.ts file at: ${typesPath}`);
