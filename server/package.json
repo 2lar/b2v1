@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node dist/server/src/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "./node_modules/.bin/tsc && node ../scripts/copy-shared-types.js",
-    "init-data": "ts-node scripts/init-data.ts",
+    "build": "./node_modules/.bin/tsc && node ./scripts/copy-shared-types.js",
+    "init-data": "node scripts/init-data.js",
     "postinstall": "npm run init-data"
   },
   "dependencies": {

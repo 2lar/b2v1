@@ -9,11 +9,12 @@
     "build:client": "cd client && npm install && npm run build",
     "copy-client": "mkdir -p dist/client && cp -r client/build dist/client/build",
     "copy-script": "mkdir -p server/scripts && cp scripts/copy-shared-types.js server/scripts/",
+    "copy-init-data": "cp server/scripts/init-data.js server/scripts/",
     "server": "ts-node-dev --respawn --transpile-only server/src/index.ts",
     "client": "cd client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "install-all": "npm install && cd client && npm install && cd ../server && npm install",
-    "postinstall": "cd server && npm install && cd ../client && npm install",
+    "postinstall": "mkdir -p server/scripts && cd server && npm install && cd ../client && npm install",
     "prebuild": "npm run copy-script",
     "build": "npm run build:server && npm run build:client && npm run copy-client",
     "render-build": "npm run build"
