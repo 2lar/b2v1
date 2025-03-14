@@ -9,13 +9,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: GEMINI_API_KEY
-        sync: false
-      - key: RENDER
-        value: true
+        sync: false # This will be set manually in the Render dashboard
     disk:
       name: data
-      mountPath: /opt/render/data
+      mountPath: /opt/render/project/src/data
       sizeGB: 1

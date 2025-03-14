@@ -105,11 +105,15 @@ const generateWithGemini = async (prompt: string, options: GenerateOptions = {})
 const generateWithLocalModel = async (prompt: string, options: GenerateOptions = {}): Promise<string> => {
   const config = readLlmConfig();
   
+  // Fix the TypeScript error by providing a default value for localLlmUrl
+  const localLlmUrl = config.localLlmUrl || 'http://localhost:11434/api/generate';
+  const localLlmModel = config.localLlmModel || 'mistral';
+  
   try {
     const response = await axios.post(
-      config.localLlmUrl,
+      localLlmUrl,
       {
-        model: config.localLlmModel,
+        model: localLlmModel,
         prompt,
         stream: false,
         temperature: options.temperature || 0.7,
@@ -215,7 +219,9 @@ export const isLlmAvailable = async (): Promise<boolean> => {
   
   if (currentConfig.provider === 'local') {
     try {
-      await axios.get(currentConfig.localLlmUrl.replace('/generate', '/models'));
+      // Fix the TypeScript error by adding a check for undefined and providing a default
+      const localLlmUrl = currentConfig.localLlmUrl || 'http://localhost:11434/api/generate';
+      await axios.get(localLlmUrl.replace('/generate', '/models'));
       return true;
     } catch (error) {
       return false;

@@ -5,19 +5,18 @@
   "main": "dist/server/src/index.js",
   "scripts": {
     "start": "node dist/server/src/index.js",
-    "build:server": "cd server && ./node_modules/.bin/tsc -p tsconfig.json && node ../scripts/copy-shared-types.js",
+    "build:server": "cd server && npm run build",
     "build:client": "cd client && npm install && npm run build",
     "copy-client": "mkdir -p dist/client && cp -r client/build dist/client/build",
+    "copy-script": "mkdir -p server/scripts && cp scripts/copy-shared-types.js server/scripts/",
     "server": "ts-node-dev --respawn --transpile-only server/src/index.ts",
     "client": "cd client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "install-all": "npm install && cd client && npm install && cd ../server && npm install",
-    "lint": "eslint --ext .js,.ts,.tsx .",
-    "lint-fix": "eslint --ext .js,.ts,.tsx . --fix",
-    "prepare-types": "node scripts/prepare-types.js",
-    "render-build": "node render-build.js",
-    "build:ts": "./node_modules/.bin/tsc -p server/tsconfig.json",
-    "build": "tsc && node scripts/copy-shared-types.js"
+    "postinstall": "cd server && npm install && cd ../client && npm install",
+    "prebuild": "npm run copy-script",
+    "build": "npm run build:server && npm run build:client && npm run copy-client",
+    "render-build": "npm run build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",

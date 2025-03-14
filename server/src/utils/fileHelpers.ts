@@ -6,7 +6,7 @@ import { Note, Connection, CategoriesData, LlmConfig } from '../../../shared/typ
 const getDataDir = (): string => {
   // Check if we're on Render with a disk mount
   if (process.env.RENDER && process.env.RENDER_DISK_MOUNT_PATH) {
-    const renderDataDir = path.join(process.env.RENDER_DISK_MOUNT_PATH, 'data');
+    const renderDataDir = path.join(process.env.RENDER_DISK_MOUNT_PATH);
     console.log(`Using Render disk mount for data: ${renderDataDir}`);
     return renderDataDir;
   }
@@ -29,12 +29,14 @@ const getDataDir = (): string => {
   // If no path exists, create one in root
   const rootDataDir = possiblePaths[0];
   console.log(`Creating data directory: ${rootDataDir}`);
+  fs.mkdirSync(rootDataDir, { recursive: true });
   return rootDataDir;
 };
 
 const dataDir = getDataDir();
 console.log(`Data directory set to: ${dataDir}`);
 
+// Rest of the file remains the same...
 const notesPath = path.join(dataDir, 'notes.json');
 const connectionsPath = path.join(dataDir, 'connections.json');
 const categoriesPath = path.join(dataDir, 'categories.json');

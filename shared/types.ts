@@ -1,123 +1,133 @@
-// Shared type definitions between client and server
-
+/**
+ * Note model representing a user's thought or idea
+ */
 export interface Note {
-    id: string;
-    content: string;
-    createdAt: string;
-  }
-  
-  export interface Connection {
-    id: string;
-    sourceId: string;
-    targetId: string;
-    strength: number;
-    type: 'automatic' | 'manual';
-    createdAt: string;
-  }
-  
-  export interface GraphData {
-    nodes: {
-      id: string;
-      label: string;
-      content: string;
-      createdAt: string;
-    }[];
-    edges: {
-      id: string;
-      source: string;
-      target: string;
-      strength: number;
-      type: string;
-    }[];
-  }
-  
-  export interface LlmConfig {
-    provider: 'none' | 'gemini' | 'local';
-    geminiApiKey: string;
-    localLlmUrl: string;
-    localLlmModel: string;
-  }
-  
-  export interface Category {
-    id: string;
-    name: string;
-    level: number;
-    noteCount?: number;
-  }
-  
-  export interface CategoriesData {
-    categories: Category[];
-    noteCategoryMap: Record<string, string[]>;
-    hierarchy: Record<string, string[]>;
-  }
-  
-  export interface ChatMessage {
-    id: number;
-    type: 'user' | 'ai' | 'error';
-    content: string;
-    sources?: {
-      id: string;
-      content: string;
-      relevance: number;
-    }[];
-  }
-  
-  export interface QueryResponse {
-    modeId?: string;
-    response: string;
-    sources: {
-      id: string;
-      content: string;
-      relevance: number;
-    }[];
-  }
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
-  export interface LlmConfig {
-    provider: 'none' | 'gemini' | 'local';
-    geminiApiKey: string;
-    localLlmUrl: string;
-    localLlmModel: string;
-    model?: string;
-    selectedAgentId?: string; // ID of the selected agent/chat mode
-    generationConfig?: {
-      temperature: number;
-      maxOutputTokens: number;
-      topP: number;
-      topK: number;
-    };
-    safetySettings?: Array<{
-      category: string;
-      threshold: string;
-    }>;
-  }
+/**
+ * Connection model representing a relationship between two notes
+ */
+export interface Connection {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  strength: number;
+  type: 'automatic' | 'manual';
+  createdAt: string;
+  updatedAt?: string;
+}
 
-  export interface ChatMode {
+/**
+ * Category model for organizing notes
+ */
+export interface Category {
+  id: string;
+  name: string;
+  level: number;
+  noteCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * LLM provider configuration for AI features
+ */
+export interface LlmConfig {
+  provider: 'none' | 'gemini' | 'local';
+  geminiApiKey?: string;
+  localLlmUrl?: string;
+  localLlmModel?: string;
+  model?: string;
+  selectedAgentId?: string;
+  generationConfig?: {
+    temperature: number;
+    maxOutputTokens: number;
+    topP: number;
+    topK: number;
+  };
+  safetySettings?: Array<{
+    category: string;
+    threshold: string;
+  }>;
+}
+
+/**
+ * Graph data for visualization
+ */
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface GraphNode {
+  id: string;
+  label: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  strength: number;
+  type: string;
+}
+
+/**
+ * Categories data structure
+ */
+export interface CategoriesData {
+  categories: Category[];
+  noteCategoryMap: Record<string, string[]>;
+  hierarchy: Record<string, string[]>;
+}
+
+/**
+ * Chat message model
+ */
+export interface ChatMessage {
+  id: number;
+  type: 'user' | 'ai' | 'error';
+  content: string;
+  sources?: Array<{
     id: string;
-    name: string;
-    description: string;
-    promptTemplate: string;
-    icon?: string; // Optional icon identifier (for UI)
-  }
-  
-  /**
-   * Updated Query Request with chat mode
-   */
-  export interface QueryRequest {
-    query: string;
-    modeId?: string; // The selected chat mode ID
-  }
-  
-  /**
-   * Update ChatMessage to potentially include the mode
-   */
-  export interface ChatMessage {
-    id: number;
-    type: 'user' | 'ai' | 'error';
     content: string;
-    sources?: Array<{
-      id: string;
-      content: string;
-      relevance: number;
-    }>;
-    modeId?: string; // Track which mode was used
-  }
+    relevance: number;
+  }>;
+  modeId?: string;
+}
+
+/**
+ * Chat mode / AI persona
+ */
+export interface ChatMode {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  promptTemplate: string;
+}
+
+/**
+ * API Request and Response types
+ */
+
+export interface QueryRequest {
+  query: string;
+  modeId?: string;
+}
+
+export interface QueryResponse {
+  response: string;
+  sources: Array<{
+    id: string;
+    content: string;
+    relevance: number;
+  }>;
+  modeId?: string;
+}
