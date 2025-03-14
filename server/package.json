@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server/src/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "./node_modules/.bin/tsc && node ./scripts/copy-shared-types.js",
+    "build": "npx tsc && node ./scripts/copy-shared-types.js",
     "init-data": "node scripts/init-data.js",
     "postinstall": "npm run init-data"
   },
@@ -16,7 +16,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "openai": "^4.20.0"
+    "openai": "^4.20.0",
+    "typescript": "^4.9.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
@@ -24,7 +25,6 @@
     "@types/node": "^20.3.1",
     "nodemon": "^2.0.22",
     "ts-node": "^10.9.1",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^4.9.5"
+    "ts-node-dev": "^2.0.0"
   }
 }
