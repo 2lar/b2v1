@@ -17,7 +17,7 @@
     "prepare-types": "node scripts/prepare-types.js",
     "render-build": "node render-build.js",
     "build:ts": "./node_modules/.bin/tsc -p server/tsconfig.json",
-    "build": "npm run build:server && node scripts/copy-shared-types.js"
+    "build": "tsc && node scripts/copy-shared-types.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
