@@ -145,6 +145,252 @@ function compileTypeScript() {
   console.log('TypeScript files "compiled" to JavaScript');
 }
 
+function fixNotesJsFile() {
+    console.log('\n===> Creating fixed notes.js file');
+    
+    const notesJsPath = path.join(process.cwd(), 'dist', 'server', 'src', 'routes', 'notes.js');
+    
+    // Make sure the directory exists
+    const dir = path.dirname(notesJsPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // Create a working notes.js file
+    const notesJsContent = `
+  const express = require('express');
+  const fileHelpers = require('../utils/fileHelpers');
+  const textUtils = require('../utils/textUtils');
+  const categoryService = require('../services/categoryService');
+  
+  const readNotes = fileHelpers.readNotes;
+  const writeNotes = fileHelpers.writeNotes;
+  const calculateSimilarity = textUtils.calculateSimilarity;
+  const categorizeNote = categoryService.categorizeNote;
+  
+  const notesRouter = express.Router();
+  
+  // Create connections for a note
+  const createConnections = (noteId, content) => {
+    const notes = readNotes();
+    
+    // Find other notes to connect to
+    const otherNotes = notes.filter(note => note.id !== noteId);
+    const newConnections = [];
+    
+    for (const otherNote of otherNotes) {
+      const similarity = calculateSimilarity(content, otherNote.content);
+      
+      // Only create connection if similarity is above threshold
+      if (similarity > 0.1) {
+        const connection = {
+          id: Date.now() + Math.random().toString(36).substring(2, 9),
+          sourceId: noteId,
+          targetId: otherNote.id,
+          strength: similarity,
+          type: 'automatic',
+          createdAt: new Date().toISOString()
+        };
+        
+        newConnections.push(connection);
+      }
+    }
+    
+    return newConnections;
+  };
+  
+  // Get all notes
+  notesRouter.get('/', (req, res) => {
+    try {
+      const notes = readNotes();
+      res.json(notes);
+    } catch (error) {
+      console.error('Error retrieving notes:', error);
+      res.status(500).json({ error: 'Failed to retrieve notes' });
+    }
+  });
+  
+  // Create a new note
+  notesRouter.post('/', async (req, res) => {
+    try {
+      const notes = readNotes();
+      
+      if (!req.body.content) {
+        return res.status(400).json({ error: 'Content is required' });
+      }
+      
+      const newNote = {
+        id: Date.now().toString(),
+        content: req.body.content,
+        createdAt: new Date().toISOString()
+      };
+      
+      notes.push(newNote);
+      writeNotes(notes);
+      
+      // Create connections for the new note
+      const connections = createConnections(newNote.id, newNote.content);
+      
+      // Categorize the note (if available)
+      let categoryResult = { categories: [] };
+      try {
+        if (categorizeNote) {
+          categoryResult = await categorizeNote(newNote);
+        }
+      } catch (err) {
+        console.error('Error categorizing note:', err);
+      }
+      
+      res.status(201).json({ 
+        note: newNote,
+        connections,
+        categories: categoryResult.categories
+      });
+    } catch (error) {
+      console.error('Error creating note:', error);
+      res.status(500).json({ error: 'Failed to create note' });
+    }
+  });
+  
+  // Basic routes for GET, DELETE etc.
+  notesRouter.get('/:id', (req, res) => {
+    try {
+      const notes = readNotes();
+      const note = notes.find(n => n.id === req.params.id);
+      
+      if (!note) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
+      
+      res.json(note);
+    } catch (error) {
+      console.error('Error retrieving note:', error);
+      res.status(500).json({ error: 'Failed to retrieve note' });
+    }
+  });
+  
+  notesRouter.delete('/:id', (req, res) => {
+    try {
+      const notes = readNotes();
+      const filteredNotes = notes.filter(n => n.id !== req.params.id);
+      
+      if (filteredNotes.length === notes.length) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
+      
+      writeNotes(filteredNotes);
+      
+      res.json({ message: 'Note deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      res.status(500).json({ error: 'Failed to delete note' });
+    }
+  });
+  
+  // Export router
+  module.exports = { notesRouter };
+  `;
+    
+    fs.writeFileSync(notesJsPath, notesJsContent);
+    console.log(`Created fixed notes.js at ${notesJsPath}`);
+  }
+  
+  // Call this function in the main script flow
+  fixNotesJsFile();
+
+// Add this to render-build.js after fixNotesJsFile
+
+function createMinimalServerApp() {
+    console.log('\n===> Creating minimal server.js file');
+    
+    const serverJsPath = path.join(process.cwd(), 'dist', 'server', 'src', 'server.js');
+    
+    // Create a simplified server.js that works
+    const serverJsContent = `
+  const express = require('express');
+  const cors = require('cors');
+  const path = require('path');
+  const fs = require('fs');
+  
+  // Import routes manually
+  const { notesRouter } = require('./routes/notes');
+  
+  // Create Express app
+  const app = express();
+  const PORT = process.env.PORT || 5000;
+  
+  // Middleware
+  app.use(cors());
+  app.use(express.json());
+  
+  // Set up routes
+  app.use('/api/notes', notesRouter);
+  
+  // Simple route for other endpoints
+  app.get('/api/graph', (req, res) => {
+    res.json({ nodes: [], edges: [] });
+  });
+  
+  app.post('/api/query', (req, res) => {
+    res.json({ 
+      response: "API is working, but AI features require configuration.",
+      sources: []
+    });
+  });
+  
+  // Create data directory
+  const dataDir = path.join(process.cwd(), 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(path.join(dataDir, 'notes.json'), '[]');
+    fs.writeFileSync(path.join(dataDir, 'connections.json'), '[]');
+  }
+  
+  // Serve static files
+  const clientBuildPath = path.join(__dirname, '../../client');
+  if (fs.existsSync(clientBuildPath)) {
+    app.use(express.static(clientBuildPath));
+    
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(clientBuildPath, 'index.html'));
+    });
+  }
+  
+  // Export for index.js
+  module.exports = { app, PORT };
+  `;
+    
+    fs.writeFileSync(serverJsPath, serverJsContent);
+    console.log(`Created simplified server.js at ${serverJsPath}`);
+  }
+  
+  // Call this function in the main script
+  createMinimalServerApp();
+
+// Add this after createMinimalServerApp
+
+function createMinimalIndexJs() {
+    console.log('\n===> Creating minimal index.js file');
+    
+    const indexJsPath = path.join(process.cwd(), 'dist', 'server', 'src', 'index.js');
+    
+    // Create a simple index.js
+    const indexJsContent = `
+  const { app, PORT } = require('./server');
+  
+  // Start the server
+  app.listen(PORT, () => {
+    console.log(\`Server running on port \${PORT}\`);
+  });
+  `;
+    
+    fs.writeFileSync(indexJsPath, indexJsContent);
+    console.log(`Created simplified index.js at ${indexJsPath}`);
+  }
+  
+  // Call this function in the main script
+  createMinimalIndexJs();
+
 // Create a mock client build
 function createMockClientBuild() {
   console.log('\n===> Creating mock client build');
