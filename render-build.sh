@@ -142,7 +142,29 @@ cd ..
 echo "Installing client dependencies and building..."
 cd client
 npm install --no-package-lock
-npm run build
+
+# Create a simple build script to bypass react-scripts build
+cat > build.js << 'EOF'
+const { execSync } = require('child_process');
+const path = require('path');
+
+try {
+  // Find the react-scripts binary
+  const reactScriptsPath = path.join(process.cwd(), 'node_modules', '.bin', 'react-scripts');
+  console.log(`Using react-scripts at: ${reactScriptsPath}`);
+  
+  // Run the build command
+  execSync(`${reactScriptsPath} build`, { stdio: 'inherit' });
+  console.log('Client build completed successfully');
+} catch (error) {
+  console.error('Build failed:', error.message);
+  process.exit(1);
+}
+EOF
+
+# Run the custom build script
+echo "Running custom build script..."
+node build.js
 cd ..
 
 # Copy client build to dist
