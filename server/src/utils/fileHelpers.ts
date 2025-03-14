@@ -11,11 +11,21 @@ const getDataDir = (): string => {
     return renderDataDir;
   }
   
-  // Local development or production without disk mount
-  return path.join(__dirname, '../../data');
+  // First try the root data directory (for production)
+  const rootDataDir = path.join(process.cwd(), 'data');
+  if (fs.existsSync(rootDataDir)) {
+    console.log(`Using root data directory: ${rootDataDir}`);
+    return rootDataDir;
+  }
+  
+  // Fall back to the server/data directory (for development)
+  const serverDataDir = path.join(__dirname, '../../../server/data');
+  console.log(`Using server data directory: ${serverDataDir}`);
+  return serverDataDir;
 };
 
 const dataDir = getDataDir();
+console.log(`Data directory set to: ${dataDir}`);
 
 const notesPath = path.join(dataDir, 'notes.json');
 const connectionsPath = path.join(dataDir, 'connections.json');
@@ -80,6 +90,7 @@ export const ensureDataDirectory = (): void => {
 // Read data from a file
 export const readData = <T>(filePath: string): T => {
   try {
+    console.log(`Reading from: ${filePath}`);
     const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data) as T;
   } catch (error) {
@@ -101,6 +112,7 @@ export const readData = <T>(filePath: string): T => {
 // Write data to a file
 export const writeData = <T>(filePath: string, data: T): boolean => {
   try {
+    console.log(`Writing to: ${filePath}`);
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
     return true;
   } catch (error) {
