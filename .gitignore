@@ -8,7 +8,6 @@
 /client/build
 /server/dist
 server/data/llm-config.json
-/dist
 
 # Environment variables
 .env
