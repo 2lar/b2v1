@@ -16,10 +16,6 @@
       "../shared/*": ["../shared/*"]
     }
   },
-  "include": [
-    "server/src/**/*",
-    "server/scripts/**/*",
-    "shared/**/*"
-  ],
+  "include": ["src/**/*", "scripts/**/*", "../shared/**/*"],
   "exclude": ["node_modules", "**/*.test.ts", "dist"]
 }

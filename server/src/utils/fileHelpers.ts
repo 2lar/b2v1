@@ -11,17 +11,25 @@ const getDataDir = (): string => {
     return renderDataDir;
   }
   
-  // First try the root data directory (for production)
-  const rootDataDir = path.join(process.cwd(), 'data');
-  if (fs.existsSync(rootDataDir)) {
-    console.log(`Using root data directory: ${rootDataDir}`);
-    return rootDataDir;
+  // Check possible data locations
+  const possiblePaths = [
+    path.join(process.cwd(), 'data'),           // Root directory
+    path.join(process.cwd(), 'dist', 'data'),   // Dist directory
+    path.join(__dirname, '../../../data')       // Relative to current file
+  ];
+
+  // Use the first path that exists or create the first one
+  for (const dirPath of possiblePaths) {
+    if (fs.existsSync(dirPath)) {
+      console.log(`Using existing data directory: ${dirPath}`);
+      return dirPath;
+    }
   }
-  
-  // Fall back to the server/data directory (for development)
-  const serverDataDir = path.join(__dirname, '../../../server/data');
-  console.log(`Using server data directory: ${serverDataDir}`);
-  return serverDataDir;
+
+  // If no path exists, create one in root
+  const rootDataDir = possiblePaths[0];
+  console.log(`Creating data directory: ${rootDataDir}`);
+  return rootDataDir;
 };
 
 const dataDir = getDataDir();
