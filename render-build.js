@@ -108,11 +108,19 @@ function compileTypeScript() {
             }
             return `const { ${imports} } = require('${source}')`;
           })
-          .replace(/import\s+([^{]+)\s+from\s+['"]([^'"]+)['"]/g, function(match, module, source) {
+          // Handle specific import express from 'express' pattern
+          .replace(/import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g, function(match, module, source) {
             if (source.includes('shared/types')) {
               return '';
             }
             return `const ${module} = require('${source}')`;
+          })
+          .replace(/import\s+([^{]+)\s+from\s+['"]([^'"]+)['"]/g, function(match, module, source) {
+            if (source.includes('shared/types')) {
+              return '';
+            }
+            // Make sure to trim whitespace from the module name
+            return `const ${module.trim()} = require('${source}')`;
           })
           // Convert export statements
           .replace(/export\s+default\s+([^;]+);?/g, 'module.exports = $1;')
