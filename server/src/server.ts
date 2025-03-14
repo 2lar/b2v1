@@ -38,12 +38,21 @@ app.use('/api/llm', llmRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/chatModes', chatModesRouter);
 
+// Determine the correct client build path
+const clientBuildPath = process.env.NODE_ENV === 'production'
+  ? path.join(__dirname, '../../../client/build')  // For production on Render
+  : path.join(__dirname, '../../client/build');    // For local production testing
+
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../client/build')));
+  console.log(`Serving static files from: ${clientBuildPath}`);
   
+  // Serve static files
+  app.use(express.static(clientBuildPath));
+  
+  // All other requests go to the React app
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../client/build/index.html'));
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 }
 
@@ -51,6 +60,7 @@ if (process.env.NODE_ENV === 'production') {
 export function startServer() {
   return app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 }
 

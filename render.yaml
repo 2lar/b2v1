@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: second-brain
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/notes
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: RENDER
+        value: true
+    disk:
+      name: data
+      mountPath: /opt/render/data
+      sizeGB: 1

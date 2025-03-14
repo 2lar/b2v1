@@ -9,9 +9,20 @@ import {
   ChatMode
 } from '../../../shared/types';
 
+// Determine base URL based on environment
+const getBaseUrl = () => {
+  // In production, use relative URLs
+  if (process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+  
+  // In development, use the proxy from package.json or default to localhost
+  return '/api';
+};
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json'
   }
