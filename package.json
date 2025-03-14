@@ -4,7 +4,7 @@
   "description": "A simple second brain application with file-based storage",
   "main": "dist/server/src/index.js",
   "scripts": {
-    "start": "node dist/server/src/index.js",
+    "start": "node deployment-bundle.js && node dist/server/src/index.js",
     "build": "npm run build:server && npm run build:client && npm run copy-client",
     "build:server": "cd server && tsc && node scripts/copy-shared-types.js",
     "build:client": "cd client && npm install && npm run build",
