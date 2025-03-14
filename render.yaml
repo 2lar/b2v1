@@ -3,8 +3,43 @@ services:
     name: second-brain
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: |
+      # Create shared types directory and file
+      mkdir -p shared
+      echo 'export interface Note { id: string; content: string; createdAt: string; updatedAt?: string; }
+      export interface Connection { id: string; sourceId: string; targetId: string; strength: number; type: "automatic" | "manual"; createdAt: string; updatedAt?: string; }
+      export interface Category { id: string; name: string; level: number; noteCount?: number; createdAt?: string; updatedAt?: string; }
+      export interface LlmConfig { provider: "none" | "gemini" | "local"; geminiApiKey?: string; localLlmUrl?: string; localLlmModel?: string; model?: string; selectedAgentId?: string; generationConfig?: { temperature: number; maxOutputTokens: number; topP: number; topK: number; }; safetySettings?: Array<{ category: string; threshold: string; }>; }
+      export interface GraphData { nodes: GraphNode[]; edges: GraphEdge[]; }
+      export interface GraphNode { id: string; label: string; content: string; createdAt: string; }
+      export interface GraphEdge { id: string; source: string; target: string; strength: number; type: string; }
+      export interface CategoriesData { categories: Category[]; noteCategoryMap: Record<string, string[]>; hierarchy: Record<string, string[]>; }
+      export interface ChatMessage { id: number; type: "user" | "ai" | "error"; content: string; sources?: Array<{ id: string; content: string; relevance: number; }>; modeId?: string; }
+      export interface ChatMode { id: string; name: string; description: string; icon: string; promptTemplate: string; }
+      export interface QueryRequest { query: string; modeId?: string; }
+      export interface QueryResponse { response: string; sources: Array<{ id: string; content: string; relevance: number; }>; modeId?: string; }' > shared/types.ts
+      
+      # Install dependencies
+      npm install
+      
+      # Move TypeScript to dependencies
+      mv -f node_modules/typescript server/node_modules/
+      
+      # Build server
+      cd server && npx tsc
+      cd ..
+      
+      # Copy shared types to the right location
+      mkdir -p dist/shared
+      cp shared/types.ts dist/shared/
+      
+      # Build client
+      cd client && npm install && npm run build
+      cd ..
+      
+      # Copy client build to dist
+      mkdir -p dist/client && cp -r client/build dist/client/build
+    startCommand: node dist/server/src/index.js
     healthCheckPath: /api/notes
     envVars:
       - key: NODE_ENV
