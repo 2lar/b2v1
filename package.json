@@ -4,7 +4,7 @@
   "description": "A simple second brain application with file-based storage",
   "main": "dist/server/src/index.js",
   "scripts": {
-    "start": "node deployment-bundle.js && node dist/server/src/index.js",
+    "start": "node dist/server/src/index.js",
     "build": "npm run build:server && npm run build:client && npm run copy-client",
     "build:server": "cd server && tsc && node scripts/copy-shared-types.js",
     "build:client": "cd client && npm install && npm run build",
@@ -24,7 +24,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "openai": "^4.20.0"
+    "openai": "^4.20.0",
+    "typescript": "^5.8.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
