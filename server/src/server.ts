@@ -43,7 +43,7 @@ app.use('/api/categories', categoryRouter);
 app.use('/api/chatModes', chatModesRouter);
 
 // Determine the correct client build path
-let clientBuildPath = path.join(__dirname, '../../../client/build');
+let clientBuildPath = path.join(__dirname, '../../client/build');
 
 // Check if directory exists, if not try alternate path for Render
 if (!require('fs').existsSync(clientBuildPath)) {
