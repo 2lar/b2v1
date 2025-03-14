@@ -2,9 +2,9 @@
   "name": "second-brain-simple",
   "version": "0.1.0",
   "description": "A simple second brain application with file-based storage",
-  "main": "server/dist/index.js",
+  "main": "server/dist/server/index.js",
   "scripts": {
-    "start": "node server/dist/index.js",
+    "start": "node server/dist/server/index.js",
     "build": "npm run build:server && npm run build:client",
     "build:server": "cd server && tsc && node scripts/copy-shared-types.js",
     "build:client": "cd client && npm run build",
