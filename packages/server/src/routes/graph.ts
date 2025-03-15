@@ -108,7 +108,6 @@ graphRouter.delete('/connections/:id', (req, res) => {
     if (filteredConnections.length === connections.length) {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    
     writeConnections(filteredConnections);
     
     res.json({ message: 'Connection deleted successfully' });
@@ -166,7 +165,6 @@ graphRouter.post('/recalculate', async (req, res) => {
         }
       }
     }
-    
     writeConnections(newConnections);
     
     res.json({ 

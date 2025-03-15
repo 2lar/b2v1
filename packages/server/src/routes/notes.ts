@@ -5,49 +5,51 @@ import path from 'path';
 import { Note, Connection } from '@b2/shared';
 import { calculateSimilarity } from '../utils/textUtils';
 import { categorizeNote } from '../services/categoryService';
+import { readNotes, writeNotes, readConnections, writeConnections } from '../utils/fileHelpers';
 
 export const notesRouter = express.Router();
 
-// Helper functions for file operations
-const readNotes = (): Note[] => {
-  const filePath = path.join(__dirname, '../../data/notes.json');
-  try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error(`Error reading notes:`, error);
-    return [];
-  }
-};
+// // these functions are already defined in the filehelper
+// // Helper functions for file operations
+// const readNotes = (): Note[] => {
+//   const filePath = path.join(__dirname, '../../data/notes.json');
+//   try {
+//     const data = fs.readFileSync(filePath, 'utf8');
+//     return JSON.parse(data);
+//   } catch (error) {
+//     console.error(`Error reading notes:`, error);
+//     return [];
+//   }
+// };
 
-const writeNotes = (notes: Note[]): void => {
-  const filePath = path.join(__dirname, '../../data/notes.json');
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(notes, null, 2));
-  } catch (error) {
-    console.error(`Error writing notes:`, error);
-  }
-};
+// const writeNotes = (notes: Note[]): void => {
+//   const filePath = path.join(__dirname, '../../data/notes.json');
+//   try {
+//     fs.writeFileSync(filePath, JSON.stringify(notes, null, 2));
+//   } catch (error) {
+//     console.error(`Error writing notes:`, error);
+//   }
+// };
 
-const readConnections = (): Connection[] => {
-  const filePath = path.join(__dirname, '../../data/connections.json');
-  try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error(`Error reading connections:`, error);
-    return [];
-  }
-};
+// const readConnections = (): Connection[] => {
+//   const filePath = path.join(__dirname, '../../data/connections.json');
+//   try {
+//     const data = fs.readFileSync(filePath, 'utf8');
+//     return JSON.parse(data);
+//   } catch (error) {
+//     console.error(`Error reading connections:`, error);
+//     return [];
+//   }
+// };
 
-const writeConnections = (connections: Connection[]): void => {
-  const filePath = path.join(__dirname, '../../data/connections.json');
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(connections, null, 2));
-  } catch (error) {
-    console.error(`Error writing connections:`, error);
-  }
-};
+// const writeConnections = (connections: Connection[]): void => {
+//   const filePath = path.join(__dirname, '../../data/connections.json');
+//   try {
+//     fs.writeFileSync(filePath, JSON.stringify(connections, null, 2));
+//   } catch (error) {
+//     console.error(`Error writing connections:`, error);
+//   }
+// };
 
 // Create connections for a note
 const createConnections = (noteId: string, content: string): Connection[] => {
@@ -75,7 +77,6 @@ const createConnections = (noteId: string, content: string): Connection[] => {
       newConnections.push(connection);
     }
   }
-  
   if (newConnections.length > 0) {
     writeConnections([...connections, ...newConnections]);
   }

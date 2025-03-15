@@ -4,34 +4,46 @@ import { Note, Connection, CategoriesData, LlmConfig } from '@b2/shared';
 
 // Determine data directory based on environment
 const getDataDir = (): string => {
-  // Check if we're on Render with a disk mount
-  if (process.env.RENDER && process.env.RENDER_DISK_MOUNT_PATH) {
-    const renderDataDir = path.join(process.env.RENDER_DISK_MOUNT_PATH);
-    console.log(`Using Render disk mount for data: ${renderDataDir}`);
-    return renderDataDir;
+  // Always use the root data directory, regardless of where the code is running from
+  const rootDataDir = path.join(process.cwd(), 'data');
+  
+  if (!fs.existsSync(rootDataDir)) {
+    fs.mkdirSync(rootDataDir, { recursive: true });
+    console.log(`Created data directory: ${rootDataDir}`);
   }
   
-  // Check possible data locations
-  const possiblePaths = [
-    path.join(process.cwd(), 'data'),           // Root directory
-    path.join(process.cwd(), 'dist', 'data'),   // Dist directory
-    path.join(__dirname, '../../../data')       // Relative to current file
-  ];
-
-  // Use the first path that exists or create the first one
-  for (const dirPath of possiblePaths) {
-    if (fs.existsSync(dirPath)) {
-      console.log(`Using existing data directory: ${dirPath}`);
-      return dirPath;
-    }
-  }
-
-  // If no path exists, create one in root
-  const rootDataDir = possiblePaths[0];
-  console.log(`Creating data directory: ${rootDataDir}`);
-  fs.mkdirSync(rootDataDir, { recursive: true });
+  console.log(`Using data directory: ${rootDataDir}`);
   return rootDataDir;
 };
+// const getDataDir = (): string => {
+//   // Check if we're on Render with a disk mount
+//   if (process.env.RENDER && process.env.RENDER_DISK_MOUNT_PATH) {
+//     const renderDataDir = path.join(process.env.RENDER_DISK_MOUNT_PATH);
+//     console.log(`Using Render disk mount for data: ${renderDataDir}`);
+//     return renderDataDir;
+//   }
+  
+//   // Check possible data locations
+//   const possiblePaths = [
+//     path.join(process.cwd(), 'data'),           // Root directory
+//     path.join(process.cwd(), 'dist', 'data'),   // Dist directory
+//     path.join(__dirname, '../../../data')       // Relative to current file
+//   ];
+
+//   // Use the first path that exists or create the first one
+//   for (const dirPath of possiblePaths) {
+//     if (fs.existsSync(dirPath)) {
+//       console.log(`Using existing data directory: ${dirPath}`);
+//       return dirPath;
+//     }
+//   }
+
+//   // If no path exists, create one in root
+//   const rootDataDir = possiblePaths[0];
+//   console.log(`Creating data directory: ${rootDataDir}`);
+//   fs.mkdirSync(rootDataDir, { recursive: true });
+//   return rootDataDir;
+// };
 
 const dataDir = getDataDir();
 console.log(`Data directory set to: ${dataDir}`);
@@ -122,7 +134,21 @@ export const readData = <T>(filePath: string): T => {
 // Write data to a file
 export const writeData = <T>(filePath: string, data: T): boolean => {
   try {
-    console.log(`Writing to: ${filePath}`);
+    console.log(`Writing to Type[${data}]: ${filePath} `);
+    
+    // Added safety check for arrays
+    if (Array.isArray(data) && data.length === 0) {
+      // Check if file exists and has non-empty content
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          console.warn(`Prevented overwriting non-empty array with empty array in ${filePath}`);
+          return true; // Return true but don't actually write
+        }
+      }
+    }
+    
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
     return true;
   } catch (error) {
@@ -131,6 +157,7 @@ export const writeData = <T>(filePath: string, data: T): boolean => {
   }
 };
 
+// working instead before on dev
 let inMemoryStorage = {
   notes: [],
   connections: [],
@@ -167,6 +194,95 @@ export const readLlmConfig = (): LlmConfig => {
 };
 
 export const writeLlmConfig = (config: LlmConfig): boolean => writeData(llmConfigPath, config);
+
+
+
+// // File storage functions
+// let inMemoryStorage = {
+//   notes: [],
+//   connections: [],
+//   categories: { categories: [], noteCategoryMap: {}, hierarchy: {} },
+//   llmConfig: {
+//     provider: 'gemini',
+//     geminiApiKey: process.env.GEMINI_API_KEY || '',
+//     localLlmUrl: 'http://localhost:11434/api/generate',
+//     localLlmModel: 'mistral'
+//   }
+// };
+
+// export const readNotes = (): Note[] => readData<Note[]>(notesPath);
+// export const writeNotes = (notes: Note[]): boolean => writeData(notesPath, notes);
+
+// export const readConnections = (): Connection[] => readData<Connection[]>(connectionsPath);
+// export const writeConnections = (connections: Connection[]): boolean => writeData(connectionsPath, connections);
+
+// export const readCategories = (): CategoriesData => readData<CategoriesData>(categoriesPath);
+// export const writeCategories = (categories: CategoriesData): boolean => writeData(categoriesPath, categories);
+
+// export const readLlmConfig = (): LlmConfig => {
+//   // Check for environment variable for API key first
+//   const config = readData<LlmConfig>(llmConfigPath);
+  
+//   // Override with environment variable if available
+//   if (process.env.GEMINI_API_KEY) {
+//     config.geminiApiKey = process.env.GEMINI_API_KEY;
+//     config.provider = 'gemini'; // Enable Gemini if API key is provided
+//   }
+  
+//   return config;
+// };
+
+// export const writeLlmConfig = (config: LlmConfig): boolean => writeData(llmConfigPath, config);
+
+
+
+// // In-memory storage option (commented out)
+// let inMemoryStorage: {
+//   notes: Note[];
+//   connections: Connection[];
+//   categories: CategoriesData;
+//   llmConfig: LlmConfig;
+// } = {
+//   notes: [],
+//   connections: [],
+//   categories: { categories: [], noteCategoryMap: {}, hierarchy: {} },
+//   llmConfig: {
+//     provider: 'gemini',
+//     geminiApiKey: process.env.GEMINI_API_KEY || '',
+//     localLlmUrl: 'http://localhost:11434/api/generate',
+//     localLlmModel: 'mistral'
+//   }
+// };
+
+// // Memory-based storage functions (alternative to disk-based functions above)
+// export const readNotes = (): Note[] => inMemoryStorage.notes;
+// export const writeNotes = (notes: Note[]): boolean => { 
+//   inMemoryStorage.notes = notes;
+//   return true;
+// };
+
+// export const readConnections = (): Connection[] => inMemoryStorage.connections;
+// export const writeConnections = (connections: Connection[]): boolean => { 
+//   inMemoryStorage.connections = connections;
+//   return true;
+// };
+
+// export const readCategories = (): CategoriesData => inMemoryStorage.categories;
+// export const writeCategories = (categories: CategoriesData): boolean => { 
+//   inMemoryStorage.categories = categories;
+//   return true;
+// };
+
+// export const readLlmConfig = (): LlmConfig => {
+//   if (process.env.GEMINI_API_KEY) {
+//     inMemoryStorage.llmConfig.geminiApiKey = process.env.GEMINI_API_KEY;
+//   }
+//   return inMemoryStorage.llmConfig;
+// };
+// export const writeLlmConfig = (config: LlmConfig): boolean => { 
+//   inMemoryStorage.llmConfig = config;
+//   return true;
+// };
 
 // Get file paths (for use in other modules)
 export const getFilePaths = () => ({
