@@ -1,8 +1,10 @@
+// packages/server/src/services/llmClient.ts
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import axios from 'axios';
 import { LlmConfig } from '@b2/shared';
-import { readLlmConfig, writeLlmConfig } from '../utils/fileHelpers';
 import { extractKeywords } from '../utils/textUtils';
+import { LlmConfig as LlmConfigModel } from '../models';
+import { LlmConfigDocument } from 'src/models/LlmConfig';
 // import { getChatModeById, getDefaultChatMode } from '../../data/chatModes';
 
 interface GenerateOptions {
@@ -12,7 +14,7 @@ interface GenerateOptions {
 
 // Initialize clients
 let geminiClient: GoogleGenerativeAI | null = null;
-let currentConfig = readLlmConfig();
+let currentConfig: LlmConfig | null = null;
 
 // Set default values for Gemini
 const defaultGeminiConfig = {
@@ -44,23 +46,101 @@ const defaultGeminiConfig = {
   ],
 };
 
-// Initialize Gemini if configured
-if (currentConfig.provider === 'gemini' && (currentConfig.geminiApiKey || process.env.GEMINI_API_KEY)) {
-  try {
-    const apiKey = currentConfig.geminiApiKey || process.env.GEMINI_API_KEY || '';
-    geminiClient = new GoogleGenerativeAI(apiKey);
-    
-    // Add default Gemini configuration if not already present
-    if (!currentConfig.model) {
-      currentConfig = {
-        ...currentConfig,
-        ...defaultGeminiConfig
-      };
-    }
-  } catch (error) {
-    console.error('Error initializing Gemini client:', error);
+const convertLlmDocToInterface = (configDoc: any): LlmConfig => {
+  if (!configDoc) return null;
+
+  // Create a proper LlmConfig object with the model field set from modelName
+  const config: LlmConfig = {
+    provider: configDoc.provider,
+    geminiApiKey: configDoc.geminiApiKey || '',
+    localLlmUrl: configDoc.localLlmUrl,
+    localLlmModel: configDoc.localLlmModel,
+    model: configDoc.modelName, // Set model from modelName
+    selectedAgentId: configDoc.selectedAgentId,
+    generationConfig: configDoc.generationConfig,
+    safetySettings: configDoc.safetySettings,
+  };
+
+  return config;
+};
+
+// Load config function
+const loadConfig = async (): Promise<LlmConfig> => {
+  if (currentConfig) {
+    return currentConfig;
   }
-}
+  
+  try {
+    // Find the singleton config
+    let configDoc = await LlmConfigModel.findById('config');
+    
+    if (!configDoc) {
+      // Create default config if none exists
+      const defaultConfig: Partial<LlmConfigDocument> = {
+        provider: 'gemini',
+        geminiApiKey: process.env.GEMINI_API_KEY || '',
+        localLlmUrl: 'http://localhost:11434/api/generate',
+        localLlmModel: 'mistral',
+        modelName: 'gemini-2.0-flash',
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+          topP: 1,
+          topK: 1
+        }
+      };
+      
+      configDoc = await LlmConfigModel.create({
+        _id: 'config',
+        ...defaultConfig
+      });
+    }
+    
+    // Convert to LlmConfig interface
+    const config = convertLlmDocToInterface(configDoc.toObject());
+    
+    // Override with environment variable if available
+    if (process.env.GEMINI_API_KEY) {
+      config.geminiApiKey = process.env.GEMINI_API_KEY;
+    }
+    
+    currentConfig = config;
+    
+    // Initialize Gemini if configured
+    if (config.provider === 'gemini' && (config.geminiApiKey || process.env.GEMINI_API_KEY)) {
+      try {
+        const apiKey = config.geminiApiKey || process.env.GEMINI_API_KEY || '';
+        geminiClient = new GoogleGenerativeAI(apiKey);
+        console.log('Gemini client initialized');
+      } catch (error) {
+        console.error('Error initializing Gemini client:', error);
+      }
+    }
+    
+    return config;
+  } catch (error) {
+    console.error('Error loading LLM config:', error);
+    
+    // Return default config if there's an error
+    return {
+      provider: 'gemini',
+      geminiApiKey: process.env.GEMINI_API_KEY || '',
+      localLlmUrl: 'http://localhost:11434/api/generate',
+      localLlmModel: 'mistral',
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+        topP: 1,
+        topK: 1
+      }
+    };
+  }
+};
+// Initialize on module load
+loadConfig().catch(err => {
+  console.error('Error during initial LLM config load:', err);
+});
 
 /**
  * Generate text with Gemini
@@ -69,23 +149,26 @@ const generateWithGemini = async (prompt: string, options: GenerateOptions = {})
   if (!geminiClient) {
     throw new Error('Gemini is not configured');
   }
+  
+  // Ensure config is loaded
+  const config = await loadConfig();
 
   try {
     // Use Gemini model from config or default to gemini-pro
-    const modelName = currentConfig.model || "gemini-2.0-flash";
+    const modelName = config.model || "gemini-2.0-flash";
     const model = geminiClient.getGenerativeModel({ model: modelName });
     
     // Generate content
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        temperature: options.temperature || currentConfig.generationConfig?.temperature || 0.7,
-        maxOutputTokens: options.maxTokens || currentConfig.generationConfig?.maxOutputTokens || 1000,
-        topP: currentConfig.generationConfig?.topP || 1,
-        topK: currentConfig.generationConfig?.topK || 1,
+        temperature: options.temperature || config.generationConfig?.temperature || 0.7,
+        maxOutputTokens: options.maxTokens || config.generationConfig?.maxOutputTokens || 1000,
+        topP: config.generationConfig?.topP || 1,
+        topK: config.generationConfig?.topK || 1,
       },
-      safetySettings: currentConfig.safetySettings ? 
-        currentConfig.safetySettings.map(s => ({
+      safetySettings: config.safetySettings ? 
+        config.safetySettings.map(s => ({
           category: s.category as unknown as HarmCategory,
           threshold: s.threshold as unknown as HarmBlockThreshold
         })) : 
@@ -103,7 +186,8 @@ const generateWithGemini = async (prompt: string, options: GenerateOptions = {})
  * Generate text with a local model (assumes Ollama is running)
  */
 const generateWithLocalModel = async (prompt: string, options: GenerateOptions = {}): Promise<string> => {
-  const config = readLlmConfig();
+  // Ensure config is loaded
+  const config = await loadConfig();
   
   // Fix the TypeScript error by providing a default value for localLlmUrl
   const localLlmUrl = config.localLlmUrl || 'http://localhost:11434/api/generate';
@@ -152,7 +236,8 @@ const generateWithFallback = (prompt: string): string => {
  * Generate text with whatever model is configured
  */
 export const generateText = async (prompt: string, options: GenerateOptions = {}): Promise<string> => {
-  const config = readLlmConfig();
+  // Ensure config is loaded
+  const config = await loadConfig();
   
   try {
     switch (config.provider) {
@@ -172,25 +257,42 @@ export const generateText = async (prompt: string, options: GenerateOptions = {}
 /**
  * Update the LLM configuration
  */
-export const updateConfig = (newConfig: Partial<LlmConfig>): boolean => {
+export const updateConfig = async (newConfig: Partial<LlmConfig>): Promise<boolean> => {
   try {
-    currentConfig = { ...currentConfig, ...newConfig };
+    // Load current config
+    const config = await loadConfig();
+    
+    // Update config
+    const updatedConfig = { ...config, ...newConfig };
     
     // Make sure we have a default selectedAgentId if not provided
-    if (!currentConfig.selectedAgentId) {
-      currentConfig.selectedAgentId = 'default';
+    if (!updatedConfig.selectedAgentId) {
+      updatedConfig.selectedAgentId = 'default';
     }
     
+    // Convert model to modelName for MongoDB
+    const dbConfig: any = { ...updatedConfig };
+    if (updatedConfig.model) {
+      dbConfig.modelName = updatedConfig.model;
+      delete dbConfig.model;
+    }
+    
+    // Update in database
+    await LlmConfigModel.findByIdAndUpdate('config', dbConfig, { upsert: true });
+    
+    // Update in memory
+    currentConfig = updatedConfig;
+    
     // Initialize clients if needed
-    if (currentConfig.provider === 'gemini' && currentConfig.geminiApiKey) {
+    if (updatedConfig.provider === 'gemini' && updatedConfig.geminiApiKey) {
       try {
-        geminiClient = new GoogleGenerativeAI(currentConfig.geminiApiKey);
+        geminiClient = new GoogleGenerativeAI(updatedConfig.geminiApiKey);
       } catch (error) {
         console.error('Error initializing Gemini client:', error);
       }
     }
     
-    return writeLlmConfig(currentConfig);
+    return true;
   } catch (error) {
     console.error('Error updating config:', error);
     return false;
@@ -201,14 +303,17 @@ export const updateConfig = (newConfig: Partial<LlmConfig>): boolean => {
  * Check if LLM is available
  */
 export const isLlmAvailable = async (): Promise<boolean> => {
-  if (currentConfig.provider === 'none') {
+  // Ensure config is loaded
+  const config = await loadConfig();
+  
+  if (config.provider === 'none') {
     return false;
   }
   
-  if (currentConfig.provider === 'gemini' && geminiClient) {
+  if (config.provider === 'gemini' && geminiClient) {
     try {
       // Try to get the model to verify the API key works
-      const modelName = currentConfig.model || "gemini-2.0-flash";
+      const modelName = config.model || "gemini-2.0-flash";
       geminiClient.getGenerativeModel({ model: modelName });
       return true;
     } catch (error) {
@@ -217,10 +322,10 @@ export const isLlmAvailable = async (): Promise<boolean> => {
     }
   }
   
-  if (currentConfig.provider === 'local') {
+  if (config.provider === 'local') {
     try {
       // Fix the TypeScript error by adding a check for undefined and providing a default
-      const localLlmUrl = currentConfig.localLlmUrl || 'http://localhost:11434/api/generate';
+      const localLlmUrl = config.localLlmUrl || 'http://localhost:11434/api/generate';
       await axios.get(localLlmUrl.replace('/generate', '/models'));
       return true;
     } catch (error) {
@@ -234,19 +339,25 @@ export const isLlmAvailable = async (): Promise<boolean> => {
 /**
  * Get the current configuration
  */
-export const getConfig = (): Omit<LlmConfig, 'geminiApiKey'> & { geminiApiKey: string } => {
+export const getConfig = async (): Promise<Omit<LlmConfig, 'geminiApiKey'> & { geminiApiKey: string }> => {
+  // Ensure config is loaded
+  const config = await loadConfig();
+  
   // Don't return the actual API key
   return {
-    ...currentConfig,
-    geminiApiKey: currentConfig.geminiApiKey ? '[CONFIGURED]' : '',
+    ...config,
+    geminiApiKey: config.geminiApiKey ? '[CONFIGURED]' : '',
   };
 };
 
 /**
  * Get the default agent ID from config
  */
-export const getDefaultAgentId = (): string => {
-  return currentConfig.selectedAgentId || 'default';
+export const getDefaultAgentId = async (): Promise<string> => {
+  // Ensure config is loaded
+  const config = await loadConfig();
+  
+  return config.selectedAgentId || 'default';
 };
 
 export default {
