@@ -2,6 +2,43 @@ import fs from 'fs';
 import path from 'path';
 import { Note, Connection, CategoriesData, LlmConfig } from '@b2/shared';
 
+// Initialize data directory and files immediately upon module import
+const initDataDirectory = () => {
+  const dataDir = process.cwd() + '/data';
+  
+  if (!fs.existsSync(dataDir)) {
+    try {
+      fs.mkdirSync(dataDir, { recursive: true });
+      console.log(`Created data directory: ${dataDir}`);
+    } catch (error) {
+      console.error('Error creating data directory:', error);
+    }
+  }
+
+  // Default data files
+  const defaultFiles = {
+    'notes.json': '[]',
+    'connections.json': '[]',
+    'categories.json': '{"categories":[],"noteCategoryMap":{},"hierarchy":{}}',
+    'llm-config.json': '{"provider":"gemini","geminiApiKey":"","localLlmUrl":"http://localhost:11434/api/generate","localLlmModel":"mistral","model":"gemini-2.0-flash","generationConfig":{"temperature":0.7,"maxOutputTokens":1000,"topP":1,"topK":1}}'
+  };
+
+  Object.entries(defaultFiles).forEach(([filename, defaultContent]) => {
+    const filePath = path.join(dataDir, filename);
+    if (!fs.existsSync(filePath)) {
+      try {
+        fs.writeFileSync(filePath, defaultContent);
+        console.log(`Created ${filename} with default values`);
+      } catch (error) {
+        console.error(`Error creating ${filename}:`, error);
+      }
+    }
+  });
+};
+
+// Run initialization immediately
+initDataDirectory();
+
 // Determine data directory based on environment
 const getDataDir = (): string => {
   // Always use the root data directory, regardless of where the code is running from

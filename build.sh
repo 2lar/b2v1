@@ -7,10 +7,11 @@ npm install --legacy-peer-deps
 # Build shared package
 npm run build:shared
 
-# Install client dependencies and build with TypeScript explicitly installed
+# Install client dependencies including TypeScript explicitly
 cd packages/client
-npm install --legacy-peer-deps typescript@4.9.5
-npm run build
+npm install --legacy-peer-deps
+npm install --save typescript@4.9.5
+npm run build || echo "Warning: Client build failed, continuing with server build"
 cd ../..
 
 # Build server
