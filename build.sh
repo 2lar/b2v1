@@ -7,11 +7,23 @@ npm install --legacy-peer-deps
 # Build shared package
 npm run build:shared
 
-# Install client dependencies including TypeScript explicitly
+# Handle client build with compatible TypeScript version
 cd packages/client
-npm install --legacy-peer-deps
-npm install --save typescript@4.9.5
-npm run build || echo "Warning: Client build failed, continuing with server build"
+echo "Setting up client build with compatible TypeScript version..."
+
+# Remove any existing TypeScript
+rm -rf node_modules/typescript
+
+# Force install the compatible version of TypeScript
+npm install typescript@4.9.5 --save-exact --no-package-lock
+
+# Clear React Scripts cache
+rm -rf node_modules/.cache
+
+# Try to build with the compatible TypeScript version
+echo "Building client with TypeScript 4.9.5..."
+npm run build
+
 cd ../..
 
 # Build server
