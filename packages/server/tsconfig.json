@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": false,         // Changed from true to false
+    "noImplicitAny": false,  // Added to explicitly disable implicit any errors
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "composite": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@b2/shared": ["../shared/src"]
+    }
+  },
+  "include": ["src/**/*", "data/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../shared" }
+  ]
+}

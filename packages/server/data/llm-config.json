@@ -1,0 +1,14 @@
+{
+  "provider": "gemini",
+  "geminiApiKey": "AIzaSyBCKoCSOY6MDznP3fnToUDyXF3ss69tZBI",
+  "localLlmUrl": "http://localhost:11434/api/generate",
+  "localLlmModel": "mistral",
+  "model": "gemini-2.0-flash",
+  "selectedAgentId": "therapist",
+  "generationConfig": {
+    "temperature": 0.7,
+    "maxOutputTokens": 1000,
+    "topP": 1,
+    "topK": 1
+  }
+}

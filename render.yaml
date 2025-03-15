@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: b2
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build:shared && npm run build:server && npm run build:client && npm run copy:client
+    startCommand: npm start
+    healthCheckPath: /api/notes
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: GEMINI_API_KEY
+        sync: false
