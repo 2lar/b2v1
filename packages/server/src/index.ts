@@ -17,29 +17,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, '../data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-  console.log(`Created data directory: ${dataDir}`);
-}
-
-// Ensure all required data files exist
-const requiredFiles = {
-  'notes.json': '[]',
-  'connections.json': '[]',
-  'categories.json': '{"categories":[],"noteCategoryMap":{},"hierarchy":{}}',
-  'llm-config.json': '{"provider":"gemini","geminiApiKey":"","localLlmUrl":"http://localhost:11434/api/generate","localLlmModel":"mistral"}'
-};
-
-Object.entries(requiredFiles).forEach(([filename, defaultContent]) => {
-  const filePath = path.join(dataDir, filename);
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, defaultContent);
-    console.log(`Created ${filename} with default values`);
-  }
-});
-
 // Import routes
 import { notesRouter } from './routes/notes';
 import { graphRouter } from './routes/graph';
