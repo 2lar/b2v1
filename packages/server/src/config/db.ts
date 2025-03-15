@@ -1,19 +1,23 @@
-// packages/server/src/config/db.ts
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
+
 
 // Load environment variables
-dotenv.config();
+const envPath = path.resolve(__dirname, '../../../../.env');
+// console.log('Loading .env from:', envPath);
+dotenv.config({ path: envPath });
 
 // MongoDB connection URI (using environment variable or default to localhost)
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/second_brain';
-
+const MONGODB_URI = process.env.MONGODB_URI as string;
 /**
- * Connect to MongoDB
+ * Connect to MongoDB 
  */
 export const connectDB = async (): Promise<void> => {
   try {
     mongoose.set('strictQuery', false);
+    console.log("trying to conncet to mongoooose");
+    console.log(MONGODB_URI);
     const conn = await mongoose.connect(MONGODB_URI);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {

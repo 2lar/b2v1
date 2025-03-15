@@ -1,22 +1,77 @@
 import express, { Request, Response } from 'express';
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
-import { readNotes, readLlmConfig } from '../utils/fileHelpers';
 import { calculateSimilarity } from '../utils/textUtils';
-import { QueryResponse, QueryRequest, Note } from '@b2/shared';
+import { QueryResponse, QueryRequest } from '@b2/shared';
 import { getDefaultChatMode, getChatModeById } from '../../data/chatModes';
+import { Note as NoteModel } from '../models';
+import { LlmConfig as LlmConfigModel } from '../models';
+import { LlmConfigDocument } from '../models/LlmConfig';
 
 export const queryRouter = express.Router();
 
 // Initialize Gemini
 let geminiClient: GoogleGenerativeAI | null = null;
-const config = readLlmConfig();
 
-// Setup Gemini if API key is available
-if ((config.geminiApiKey || process.env.GEMINI_API_KEY) && config.provider === 'gemini') {
-  const apiKey = config.geminiApiKey || process.env.GEMINI_API_KEY || '';
-  geminiClient = new GoogleGenerativeAI(apiKey);
-  console.log('Gemini client initialized for query router');
-}
+// Helper function to convert LlmConfigDocument to a usable object
+const convertLlmDocToInterface = (configDoc: any) => {
+  if (!configDoc) return null;
+  
+  return {
+    provider: configDoc.provider,
+    geminiApiKey: configDoc.geminiApiKey || '',
+    localLlmUrl: configDoc.localLlmUrl,
+    localLlmModel: configDoc.localLlmModel,
+    model: configDoc.modelName, // Map from modelName
+    selectedAgentId: configDoc.selectedAgentId,
+    generationConfig: configDoc.generationConfig,
+    safetySettings: configDoc.safetySettings
+  };
+};
+
+// Get LLM config
+const getLlmConfig = async () => {
+  try {
+    // Try to find the singleton config
+    let configDoc = await LlmConfigModel.findById('config');
+    
+    if (!configDoc) {
+      return null;
+    }
+    
+    const config = convertLlmDocToInterface(configDoc.toObject());
+    
+    // Prioritize environment variable for API key if available
+    if (process.env.GEMINI_API_KEY) {
+      config.geminiApiKey = process.env.GEMINI_API_KEY;
+    }
+    
+    return config;
+  } catch (error) {
+    console.error('Error loading LLM config:', error);
+    return null;
+  }
+};
+
+// Initialize Gemini client
+const initializeGemini = async () => {
+  const config = await getLlmConfig();
+  
+  if (config && config.provider === 'gemini' && (config.geminiApiKey || process.env.GEMINI_API_KEY)) {
+    const apiKey = config.geminiApiKey || process.env.GEMINI_API_KEY || '';
+    try {
+      geminiClient = new GoogleGenerativeAI(apiKey);
+      console.log('Gemini client initialized for query router');
+      return true;
+    } catch (error) {
+      console.error('Error initializing Gemini client:', error);
+    }
+  }
+  
+  return false;
+};
+
+// Initialize on server start
+initializeGemini();
 
 /**
  * Process a template string by replacing variable placeholders
@@ -59,18 +114,24 @@ queryRouter.post('/', async (req: Request, res: Response) => {
     
     // If Gemini isn't configured, return a simple response
     if (!geminiClient) {
-      return res.json({ 
-        response: "I'm in offline mode. Configure your Gemini API key in the Settings page to enable AI responses.",
-        sources: [],
-        modeId: chatMode?.id
-      } as QueryResponse);
+      // Try to initialize again just in case
+      const initialized = await initializeGemini();
+      
+      if (!initialized) {
+        return res.json({ 
+          response: "I'm in offline mode. Configure your Gemini API key in the Settings page to enable AI responses.",
+          sources: [],
+          modeId: chatMode?.id
+        } as QueryResponse);
+      }
     }
     
     // Find relevant notes
-    const notes: Note[] = readNotes();
+    const notes = await NoteModel.find();
+    
     const relevantNotes = notes
       .map(note => ({
-        ...note,
+        ...note.toObject(),
         relevance: calculateSimilarity(query, note.content)
       }))
       .filter(note => note.relevance > 0.1)
@@ -83,6 +144,13 @@ queryRouter.post('/', async (req: Request, res: Response) => {
       context = relevantNotes.map((note, i) => 
         `[${i+1}] ${note.content}`
       ).join('\n\n');
+    }
+    
+    // Get the LLM config
+    const config = await getLlmConfig();
+    
+    if (!config) {
+      return res.status(500).json({ error: 'LLM config not found' });
     }
     
     // Get the model name from config or use default
@@ -160,7 +228,7 @@ queryRouter.post('/', async (req: Request, res: Response) => {
 });
 
 // Simple query without AI (for testing or if Gemini is not configured)
-queryRouter.post('/simple', (req: Request, res: Response) => {
+queryRouter.post('/simple', async (req: Request, res: Response) => {
   try {
     const { query, modeId } = req.body as QueryRequest;
     
@@ -172,10 +240,11 @@ queryRouter.post('/simple', (req: Request, res: Response) => {
     const chatMode = modeId ? getChatModeById(modeId) : getDefaultChatMode();
     
     // Find relevant notes
-    const notes: Note[] = readNotes();
+    const notes = await NoteModel.find();
+    
     const relevantNotes = notes
       .map(note => ({
-        ...note,
+        ...note.toObject(),
         relevance: calculateSimilarity(query, note.content)
       }))
       .filter(note => note.relevance > 0.1)

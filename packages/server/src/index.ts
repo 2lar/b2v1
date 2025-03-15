@@ -1,4 +1,3 @@
-// packages/server/src/index.ts
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -24,6 +23,7 @@ const PORT = process.env.PORT || 5000;
 // Connect to MongoDB
 connectDB().then(async () => {
   // Initialize database with any required default data
+  console.log("tring to connect");
   await ensureDatabaseInitialized();
   console.log('Database initialized');
 }).catch(err => {
