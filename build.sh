@@ -1,38 +1,25 @@
 #!/bin/bash
-# Custom build script for Render deployment
+# Update package.json to use TypeScript 4.9.5
+sed -i 's/"typescript": "\^5.8.2"/"typescript": "4.9.5"/g' package.json
 
-# Install dependencies with legacy peer deps flag
-npm install --legacy-peer-deps
+# Install dependencies
+npm install
 
-# Build shared package
-npm run build:shared
-
-# Handle client build with compatible TypeScript version
+# Install React type definitions in client package
 cd packages/client
-echo "Setting up client build with compatible TypeScript version..."
-
-# Remove any existing TypeScript
-rm -rf node_modules/typescript
-
-# Force install the compatible version of TypeScript
-npm install typescript@4.9.5 --save-exact --no-package-lock
-
-# Clear React Scripts cache
-rm -rf node_modules/.cache
-
-# Try to build with the compatible TypeScript version
-echo "Building client with TypeScript 4.9.5..."
-npm run build
-
+npm install --save-dev @types/react @types/react-dom
 cd ../..
 
-# Build server
-cd packages/server
-npm install --legacy-peer-deps
+# Build everything
+npm run build:shared
+npm run build:server
+
+# Build client with necessary type definitions
+cd packages/client
 npm run build
 cd ../..
 
-# Copy client build to server dist folder (if it exists)
+# Copy client build to server
 mkdir -p packages/server/dist/client
 cp -r packages/client/build/* packages/server/dist/client/ || echo "Warning: Client build files not found. Continuing anyway."
 
