@@ -5,51 +5,9 @@ import path from 'path';
 import { Note, Connection } from '@b2/shared';
 import { calculateSimilarity } from '../utils/textUtils';
 import { categorizeNote } from '../services/categoryService';
-import { readNotes, writeNotes, readConnections, writeConnections } from '../utils/fileHelpers';
+import { readNotes, writeNotes, readConnections, writeConnections, readCategories, writeCategories } from '../utils/fileHelpers';
 
 export const notesRouter = express.Router();
-
-// // these functions are already defined in the filehelper
-// // Helper functions for file operations
-// const readNotes = (): Note[] => {
-//   const filePath = path.join(__dirname, '../../data/notes.json');
-//   try {
-//     const data = fs.readFileSync(filePath, 'utf8');
-//     return JSON.parse(data);
-//   } catch (error) {
-//     console.error(`Error reading notes:`, error);
-//     return [];
-//   }
-// };
-
-// const writeNotes = (notes: Note[]): void => {
-//   const filePath = path.join(__dirname, '../../data/notes.json');
-//   try {
-//     fs.writeFileSync(filePath, JSON.stringify(notes, null, 2));
-//   } catch (error) {
-//     console.error(`Error writing notes:`, error);
-//   }
-// };
-
-// const readConnections = (): Connection[] => {
-//   const filePath = path.join(__dirname, '../../data/connections.json');
-//   try {
-//     const data = fs.readFileSync(filePath, 'utf8');
-//     return JSON.parse(data);
-//   } catch (error) {
-//     console.error(`Error reading connections:`, error);
-//     return [];
-//   }
-// };
-
-// const writeConnections = (connections: Connection[]): void => {
-//   const filePath = path.join(__dirname, '../../data/connections.json');
-//   try {
-//     fs.writeFileSync(filePath, JSON.stringify(connections, null, 2));
-//   } catch (error) {
-//     console.error(`Error writing connections:`, error);
-//   }
-// };
 
 // Create connections for a note
 const createConnections = (noteId: string, content: string): Connection[] => {
@@ -95,6 +53,23 @@ notesRouter.get('/', (req: Request, res: Response) => {
   }
 });
 
+// Get a specific note by ID
+notesRouter.get('/:id', (req: Request, res: Response) => {
+  try {
+    const notes = readNotes();
+    const note = notes.find(note => note.id === req.params.id);
+    
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    
+    res.json(note);
+  } catch (error) {
+    console.error('Error retrieving note:', error);
+    res.status(500).json({ error: 'Failed to retrieve note' });
+  }
+});
+
 // Create a new note
 notesRouter.post('/', async (req: Request, res: Response) => {
   try {
@@ -127,6 +102,84 @@ notesRouter.post('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error creating note:', error);
     res.status(500).json({ error: 'Failed to create note' });
+  }
+});
+
+// Update an existing note
+notesRouter.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const notes = readNotes();
+    const noteIndex = notes.findIndex(note => note.id === req.params.id);
+    
+    if (noteIndex === -1) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    
+    if (!req.body.content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+    
+    const updatedNote: Note = {
+      ...notes[noteIndex],
+      content: req.body.content,
+      updatedAt: new Date().toISOString()
+    };
+    
+    notes[noteIndex] = updatedNote;
+    writeNotes(notes);
+    
+    // Recategorize the note
+    const categoryResult = await categorizeNote(updatedNote);
+    
+    res.json({ 
+      note: updatedNote,
+      categories: categoryResult?.categories || []
+    });
+  } catch (error) {
+    console.error('Error updating note:', error);
+    res.status(500).json({ error: 'Failed to update note' });
+  }
+});
+
+// Delete a note and its associated connections
+notesRouter.delete('/:id', (req: Request, res: Response) => {
+  try {
+    const noteId = req.params.id;
+    
+    // Get current data
+    const notes = readNotes();
+    const connections = readConnections();
+    const categoriesData = readCategories();
+    
+    // Check if note exists
+    const noteIndex = notes.findIndex(note => note.id === noteId);
+    if (noteIndex === -1) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    
+    // Remove note
+    notes.splice(noteIndex, 1);
+    writeNotes(notes);
+    
+    // Remove any connections involving this note
+    const filteredConnections = connections.filter(
+      conn => conn.sourceId !== noteId && conn.targetId !== noteId
+    );
+    writeConnections(filteredConnections);
+    
+    // Remove note from category mappings
+    if (categoriesData.noteCategoryMap[noteId]) {
+      delete categoriesData.noteCategoryMap[noteId];
+      writeCategories(categoriesData);
+    }
+    
+    res.json({ 
+      message: 'Note deleted successfully',
+      connectionsRemoved: connections.length - filteredConnections.length
+    });
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    res.status(500).json({ error: 'Failed to delete note' });
   }
 });
 
