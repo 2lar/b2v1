@@ -2,7 +2,7 @@ import express from 'express';
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import { readNotes, readLlmConfig } from '../utils/fileHelpers';
 import { calculateSimilarity } from '../utils/textUtils';
-import { QueryResponse, QueryRequest } from '../../../shared/src/index';
+import { QueryResponse, QueryRequest, Note } from '@b2/shared';
 import { getDefaultChatMode, getChatModeById } from '../../data/chatModes';
 
 export const queryRouter = express.Router();
@@ -67,7 +67,7 @@ queryRouter.post('/', async (req, res) => {
     }
     
     // Find relevant notes
-    const notes = readNotes();
+    const notes: Note[] = readNotes();
     const relevantNotes = notes
       .map(note => ({
         ...note,
@@ -172,7 +172,7 @@ queryRouter.post('/simple', (req, res) => {
     const chatMode = modeId ? getChatModeById(modeId) : getDefaultChatMode();
     
     // Find relevant notes
-    const notes = readNotes();
+    const notes: Note[] = readNotes();
     const relevantNotes = notes
       .map(note => ({
         ...note,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Note } from '../../../shared/types';
+import { Note } from '@b2/shared';
 import { FaClock, FaPen, FaTrash } from 'react-icons/fa';
 import './NoteItem.css';
 

@@ -1,5 +1,5 @@
 {
-  "name": "second-brain",
+  "name": "b2",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -7,13 +7,13 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "npm run dev --workspace=@second-brain/server",
-    "dev:client": "npm run dev --workspace=@second-brain/client",
+    "dev:server": "npm run dev --workspace=@b2/server",
+    "dev:client": "npm run dev --workspace=@b2/client",
     "build": "npm run build:shared && npm run build:server && npm run build:client",
-    "build:shared": "npm run build --workspace=@second-brain/shared",
-    "build:server": "npm run build --workspace=@second-brain/server",
-    "build:client": "npm run build --workspace=@second-brain/client",
-    "start": "npm run start --workspace=@second-brain/server"
+    "build:shared": "npm run build --workspace=@b2/shared",
+    "build:server": "npm run build --workspace=@b2/server",
+    "build:client": "npm run build --workspace=@b2/client",
+    "start": "npm run start --workspace=@b2/server"
   },
   "devDependencies": {
     "concurrently": "^8.2.0",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LlmConfig, ChatMode } from '../../../../shared/types';
+import { LlmConfig, ChatMode } from '@b2/shared';
 import { llmApi, chatModesApi } from '../../services/api';
 import './LlmSettings.css';
 

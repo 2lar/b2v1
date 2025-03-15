@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraphData } from '../../../shared/types';
+import { GraphData } from '@b2/shared';
 import { graphApi } from '../services/api';
 import GraphVisualization from '../components/GraphVisualization';
 import { FaSync, FaNetworkWired, FaProjectDiagram, FaInfoCircle, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';

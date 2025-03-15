@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChatMode } from '../../../../shared/types';
+import { ChatMode } from '@b2/shared';
 import { chatModesApi } from '../../services/api';
 import './ChatModeSettings.css';
 

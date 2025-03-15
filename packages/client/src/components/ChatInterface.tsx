@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage, ChatMode } from '../../../shared/types';
+import { ChatMessage, ChatMode } from '@b2/shared';
 import { queryApi, chatModesApi, llmApi } from '../services/api';
 import { FaInfoCircle, FaPaperPlane, FaRobot, FaExclamationTriangle, FaLink } from 'react-icons/fa';
 import './ChatInterface.css';

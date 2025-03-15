@@ -1,6 +1,6 @@
 import express from 'express';
 import * as llmClient from '../services/llmClient';
-import { LlmConfig } from '../../../shared/types';
+import { LlmConfig } from '@b2/shared';
 
 export const llmRouter = express.Router();
 

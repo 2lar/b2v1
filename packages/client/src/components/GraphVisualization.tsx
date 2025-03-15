@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import cytoscape, { Core, NodeSingular } from 'cytoscape';
 import cola from 'cytoscape-cola';
-import { GraphData } from '../../../shared/types';
+import { GraphData } from '@b2/shared';
 import './GraphVisualization.css';
 
 // Register the cola layout

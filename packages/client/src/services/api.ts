@@ -7,7 +7,7 @@ import {
   LlmConfig, 
   QueryResponse,
   ChatMode
-} from '@B2/packages/shared';
+} from '@b2/shared';
 
 // Determine base URL based on environment
 const getBaseUrl = () => {

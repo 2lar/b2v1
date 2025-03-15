@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Note } from '../../../shared/types';
+import { Note } from '@b2/shared';
 import { notesApi } from '../services/api';
 import NoteForm from '../components/NoteForm';
 import NoteItem from '../components/NoteItem';

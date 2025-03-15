@@ -29,8 +29,8 @@ A personal knowledge management system that helps you organize your thoughts and
 
 1. Clone this repository
    ```bash
-   git clone https://github.com/yourusername/second-brain-typescript.git
-   cd second-brain-typescript
+   git clone https://github.com/yourusername/b2-typescript.git
+   cd b2-typescript
    ```
 
 2. Install dependencies for both server and client
@@ -55,7 +55,7 @@ A personal knowledge management system that helps you organize your thoughts and
 ## Project Structure
 
 ```
-second-brain-typescript/
+b2-typescript/
 ├── client/                # React frontend
 │   ├── public/           # Static files
 │   └── src/              # React components and logic
@@ -170,8 +170,8 @@ This is a simplified version of the Second Brain application, focusing on core f
 
 1. Clone this repository
    ```bash
-   git clone https://github.com/yourusername/second-brain-simple.git
-   cd second-brain-simple
+   git clone https://github.com/yourusername/b2-simple.git
+   cd b2-simple
    ```
 
 2. Install dependencies for both server and client
@@ -195,7 +195,7 @@ This is a simplified version of the Second Brain application, focusing on core f
 ## Project Structure
 
 ```
-second-brain-simple/
+b2-simple/
 ├── client/                # React frontend
 ├── server/                # Express backend
 │   └── data/              # JSON files for storage

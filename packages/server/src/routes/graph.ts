@@ -2,14 +2,14 @@ import express from 'express';
 import { readNotes, readConnections, writeConnections } from '../utils/fileHelpers';
 import { calculateSimilarity } from '../utils/textUtils';
 import { updateCategoriesFromConnection } from '../services/categoryService';
-import { Connection, GraphData } from '../../../shared/types';
+import { Connection, GraphData, Note } from '@b2/shared';
 
 export const graphRouter = express.Router();
 
 // Get graph data (notes + connections)
 graphRouter.get('/', (req, res) => {
   try {
-    const notes = readNotes();
+    const notes: Note[] = readNotes();
     const connections = readConnections();
     
     // Format for visualization
@@ -45,7 +45,7 @@ graphRouter.post('/connections', async (req, res) => {
       return res.status(400).json({ error: 'Source and target IDs are required' });
     }
     
-    const notes = readNotes();
+    const notes: Note[] = readNotes();
     const connections = readConnections();
     
     // Verify that both notes exist
@@ -129,8 +129,8 @@ graphRouter.post('/recalculate', async (req, res) => {
     // Create connections between all notes with sufficient similarity
     for (let i = 0; i < notes.length; i++) {
       for (let j = i + 1; j < notes.length; j++) {
-        const note1 = notes[i];
-        const note2 = notes[j];
+        const note1: Note = notes[i];
+        const note2: Note = notes[j];
         
         const similarity = calculateSimilarity(note1.content, note2.content);
         

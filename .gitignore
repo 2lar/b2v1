@@ -12,6 +12,7 @@ server/data/llm-config.json
 /packages/client/build
 /packages/client/node_modules
 /packages/server/node_modules
+/packages/server/dist
 
 # Environment variables
 .env

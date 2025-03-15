@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Note } from '../../../shared/types';
+import { Note } from '@b2/shared';
 import { notesApi } from '../services/api';
 import { FaBrain, FaExclamationTriangle, FaPaperPlane } from 'react-icons/fa';
 import './NoteForm.css';

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Note, Connection, CategoriesData, LlmConfig } from '../../shared/types';
+import { Note, Connection, CategoriesData, LlmConfig } from '../../shared';
 
 const dataDir = path.join(__dirname, '../data');
 

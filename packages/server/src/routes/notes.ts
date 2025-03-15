@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 // Import from shared package
-import { Note, Connection } from '@B2/shared';
+import { Note, Connection } from '@b2/shared';
 import { calculateSimilarity } from '../utils/textUtils';
 import { categorizeNote } from '../services/categoryService';
 

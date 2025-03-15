@@ -3,7 +3,7 @@
     "target": "es2018",
     "module": "commonjs",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,10 +13,10 @@
     "declaration": true,
     "baseUrl": ".",
     "paths": {
-      "@B2/shared": ["../shared/src"]
+      "@b2/shared": ["../shared/src"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "data/**/*"],
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../shared" }

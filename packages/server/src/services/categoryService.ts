@@ -1,4 +1,4 @@
-import { Note, Category, CategoriesData } from '../../../shared/types';
+import { Note, Category, CategoriesData } from '@b2/shared';
 import { readCategories, readNotes, writeCategories } from '../utils/fileHelpers';
 import { extractKeywords, calculateCosineSimilarity } from '../utils/textUtils';
 import * as llmClient from './llmClient';
@@ -251,7 +251,7 @@ export const getCategoryHierarchy = (): { categories: Category[], hierarchy: Rec
 export const getNotesByCategory = (categoryId: string): Note[] => {
   const categoriesData = readCategories();
   const { noteCategoryMap } = categoriesData;
-  const notes = readNotes();
+  const notes: Note[] = readNotes();
   
   // Find all notes with this category
   const noteIds = Object.entries(noteCategoryMap)
@@ -295,7 +295,7 @@ export const updateCategoriesFromConnection = async (
   targetNoteId: string, 
   strength: number
 ): Promise<ParentCategoryResult | null> => {
-  const notes = readNotes();
+  const notes: Note[] = readNotes();
   const sourceNote = notes.find(note => note.id === sourceNoteId);
   const targetNote = notes.find(note => note.id === targetNoteId);
   

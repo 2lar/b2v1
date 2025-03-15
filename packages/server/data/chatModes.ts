@@ -1,4 +1,4 @@
-import { ChatMode } from '../../shared/types';
+import { ChatMode } from '@b2/shared';
 
 /**
  * Predefined chat modes/personas for the AI

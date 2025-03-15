@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import axios from 'axios';
-import { LlmConfig } from '../../../shared/types';
+import { LlmConfig } from '@b2/shared';
 import { readLlmConfig, writeLlmConfig } from '../utils/fileHelpers';
 import { extractKeywords } from '../utils/textUtils';
-import { getChatModeById, getDefaultChatMode } from '../../data/chatModes';
+// import { getChatModeById, getDefaultChatMode } from '../../data/chatModes';
 
 interface GenerateOptions {
   temperature?: number;

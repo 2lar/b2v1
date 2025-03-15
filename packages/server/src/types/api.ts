@@ -1,4 +1,4 @@
-import { Note, Connection } from '../../../shared/types';
+import { Note, Connection } from '@b2/shared';
 
 /**
  * API Response wrapper for consistent response format

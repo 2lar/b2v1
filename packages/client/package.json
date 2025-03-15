@@ -1,9 +1,9 @@
 {
-  "name": "@second-brain/client",
+  "name": "@b2/client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@second-brain/shared": "*",
+    "@b2/shared": "*",
     "axios": "^1.6.2",
     "cytoscape": "^3.26.0",
     "cytoscape-cola": "^2.5.1",

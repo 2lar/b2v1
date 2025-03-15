@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Note, Connection, CategoriesData, LlmConfig } from '../../../shared/types';
+import { Note, Connection, CategoriesData, LlmConfig } from '@b2/shared';
 
 // Determine data directory based on environment
 const getDataDir = (): string => {
@@ -131,9 +131,21 @@ export const writeData = <T>(filePath: string, data: T): boolean => {
   }
 };
 
-// Helper functions for specific data types
-export const readNotes = (): Note[] => readData<Note[]>(notesPath);
-export const writeNotes = (notes: Note[]): boolean => writeData(notesPath, notes);
+let inMemoryStorage = {
+  notes: [],
+  connections: [],
+  categories: { categories: [], noteCategoryMap: {}, hierarchy: {} },
+  llmConfig: {
+    provider: 'gemini',
+    geminiApiKey: process.env.GEMINI_API_KEY || '',
+    localLlmUrl: 'http://localhost:11434/api/generate',
+    localLlmModel: 'mistral'
+  }
+};
+
+// Replace disk reading functions
+export const readNotes = () => inMemoryStorage.notes;
+export const writeNotes = (notes: never[]) => { inMemoryStorage.notes = notes; };
 
 export const readConnections = (): Connection[] => readData<Connection[]>(connectionsPath);
 export const writeConnections = (connections: Connection[]): boolean => writeData(connectionsPath, connections);
