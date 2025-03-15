@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { Note } from '@b2/shared';
-import { notesApi } from '../services/api';
 import { FaBrain, FaExclamationTriangle, FaPaperPlane } from 'react-icons/fa';
 import './NoteForm.css';
 
 interface NoteFormProps {
-  onNoteAdded?: (note: Note) => void;
+  onSubmit: (content: string) => Promise<void>;
 }
 
-const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
+const NoteForm: React.FC<NoteFormProps> = ({ onSubmit }) => {
   const [content, setContent] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -26,13 +24,10 @@ const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
     setError('');
     
     try {
-      const response = await notesApi.createNote(content);
+      await onSubmit(content);
       
-      // Clear form and notify parent
+      // Clear form on success
       setContent('');
-      if (onNoteAdded) {
-        onNoteAdded(response.note);
-      }
     } catch (err) {
       setError('Failed to add note. Please try again.');
       console.error('Error adding note:', err);

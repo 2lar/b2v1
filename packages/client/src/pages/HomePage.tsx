@@ -1,64 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Note } from '@b2/shared';
-import { notesApi } from '../services/api';
 import NoteForm from '../components/NoteForm';
 import NoteItem from '../components/NoteItem';
-import { FaStream, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSpinner, FaLightbulb } from 'react-icons/fa';
+import { useStorage } from '../context/StorageContext'; // New import
+import { FaStream, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSpinner, FaLightbulb, FaFolder } from 'react-icons/fa';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
+  // Use the storage context instead of direct API calls
+  const { 
+    notes, 
+    addNote, 
+    deleteNote, 
+    loading, 
+    error: storageError, 
+    storageMode, 
+    isVaultSelected,
+    selectVault 
+  } = useStorage();
+  
   const [page, setPage] = useState<number>(1);
-  const [pagination, setPagination] = useState<{
-    currentPage: number;
-    totalPages: number;
-    totalNotes: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-  }>({
-    currentPage: 1,
-    totalPages: 1,
-    totalNotes: 0,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
-
-  // Fetch notes on component mount or page change
-  useEffect(() => {
-    fetchNotes(page);
-  }, [page]);
-
-  const fetchNotes = async (pageNum: number) => {
-    try {
-      setLoading(true);
-      const response = await notesApi.getRecentNotes(pageNum);
-      setNotes(response.notes);
-      setPagination(response.pagination);
-      setError('');
-    } catch (err) {
-      console.error('Error fetching notes:', err);
-      setError('Failed to load notes. Please try refreshing the page.');
-    } finally {
-      setLoading(false);
-    }
+  const [error, setError] = useState<string>('');
+  
+  // Calculate pagination based on the current page
+  const ITEMS_PER_PAGE = 10;
+  const paginatedNotes = notes.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(notes.length / ITEMS_PER_PAGE);
+  
+  const pagination = {
+    currentPage: page,
+    totalPages,
+    totalNotes: notes.length,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1
   };
 
-  const handleNoteAdded = (newNote: Note) => {
-    setNotes(prevNotes => [newNote, ...prevNotes]);
-    
-    // Refetch to update pagination
-    fetchNotes(1);
+  const handleNoteAdded = async (content: string) => {
+    try {
+      const newNote = await addNote(content);
+      if (!newNote) {
+        setError('Failed to add note. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error adding note:', err);
+      setError('Failed to add note. Please try again.');
+    }
   };
 
   const handleNoteDeleted = async (noteId: string) => {
     try {
-      await notesApi.deleteNote(noteId);
-      setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
-      
-      // Refetch to update pagination
-      fetchNotes(page);
+      const success = await deleteNote(noteId);
+      if (!success) {
+        setError('Failed to delete note. Please try again.');
+      }
     } catch (err) {
       console.error('Error deleting note:', err);
       setError('Failed to delete note. Please try again.');
@@ -69,27 +63,56 @@ const HomePage: React.FC = () => {
     setPage(newPage);
   };
 
+  // Handle vault selection for local storage mode
+  const handleSelectVault = async () => {
+    try {
+      await selectVault();
+    } catch (err) {
+      console.error('Error selecting vault:', err);
+      setError('Failed to select vault. Please try again.');
+    }
+  };
+
   return (
     <div className="home-page">
       <h1>Your Thoughts</h1>
       
-      <NoteForm onNoteAdded={handleNoteAdded} />
+      {/* Show vault selection message for local mode with no vault */}
+      {storageMode === 'local' && !isVaultSelected && (
+        <div className="vault-selection">
+          <div className="vault-message">
+            <FaFolder className="vault-icon" />
+            <div>
+              <h3>Select a Vault to Store Your Notes</h3>
+              <p>You're in local storage mode, but no vault has been selected.</p>
+            </div>
+          </div>
+          <button onClick={handleSelectVault} className="vault-button">
+            Select Vault Location
+          </button>
+        </div>
+      )}
+      
+      {/* Only show note form if vault is selected in local mode, or if in cloud mode */}
+      {(storageMode === 'cloud' || (storageMode === 'local' && isVaultSelected)) && (
+        <NoteForm onSubmit={handleNoteAdded} />
+      )}
       
       <div className="notes-container">
         <h2><FaStream /> Recent Thoughts</h2>
         
-        {error && (
+        {(error || storageError) && (
           <div className="error-message">
-            <FaExclamationTriangle /> {error}
+            <FaExclamationTriangle /> {error || storageError}
           </div>
         )}
         
         {loading ? (
           <div className="loading-message">
-            <FaSpinner />
+            <FaSpinner className="spinner" />
             <p>Loading your thoughts...</p>
           </div>
-        ) : notes.length === 0 ? (
+        ) : paginatedNotes.length === 0 ? (
           <div className="empty-message">
             <FaLightbulb />
             <p>No thoughts yet. Add one above to start building your knowledge network!</p>
@@ -97,7 +120,7 @@ const HomePage: React.FC = () => {
         ) : (
           <>
             <div className="notes-list">
-              {notes.map(note => (
+              {paginatedNotes.map(note => (
                 <NoteItem 
                   key={note.id} 
                   note={note} 

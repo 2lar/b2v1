@@ -1,0 +1,25 @@
+{
+  "name": "desktop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "tauri": "npx @tauri-apps/cli",
+    "dev": "npx @tauri-apps/cli dev",
+    "build": "npx @tauri-apps/cli build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "desktop:dev": "cd packages/desktop && npm run tauri dev",
+    "desktop:build": "cd packages/client && npm run build && cd ../desktop && npm run tauri build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tauri-apps/api": "^1.5.0",
+    "@b2/client": "*",
+    "@b2/shared": "*"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

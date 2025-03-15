@@ -14,14 +14,19 @@
     "build:server": "npm run build --workspace=@b2/server",
     "build:client": "npm run build --workspace=@b2/client",
     "start": "npm run start --workspace=@b2/server",
-    "copy:client": "mkdir -p packages/server/dist/client && cp -r packages/client/build/* packages/server/dist/client/"
+    "copy:client": "mkdir -p packages/server/dist/client && cp -r packages/client/build/* packages/server/dist/client/",
+    "web:start": "cd packages/client && npm start & cd packages/server && npm run dev",
+    "web:build": "cd packages/client && npm run build && cd ../server && npm run build",
+    "desktop:dev": "cd packages/desktop && npm run tauri dev",
+    "desktop:build": "cd packages/client && npm run build && cd ../desktop && npm run tauri build"
   },
   "dependencies": {
-    "react-scripts": "^5.0.1",
     "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21"
+    "@types/express": "^4.17.21",
+    "react-scripts": "^5.0.1"
   },
   "devDependencies": {
+    "@tauri-apps/api": "^1.5.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "concurrently": "^8.2.0",

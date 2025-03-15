@@ -132,3 +132,49 @@
   border-radius: 20px;
   border: 1px solid var(--border-color);
 }
+
+/* In HomePage.css */
+.vault-selection {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.vault-message {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.vault-icon {
+  font-size: 2rem;
+  color: var(--accent-primary);
+  margin-right: 15px;
+}
+
+.vault-button {
+  background-color: var(--accent-primary);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.vault-button:hover {
+  background-color: var(--accent-secondary);
+  transform: translateY(-2px);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

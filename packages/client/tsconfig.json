@@ -20,6 +20,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
+    "types": ["@tauri-apps/api", "node"],
     "paths": {
       "@b2/shared": ["../shared/src"]
     }

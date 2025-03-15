@@ -4,15 +4,17 @@
   "private": true,
   "dependencies": {
     "@b2/shared": "*",
+    "@tauri-apps/api": "^1.5.0",
+    "@types/react": "^18.2.12",
+    "@types/react-dom": "^18.2.5",
+    "@types/node": "^20.17.24",
     "axios": "^1.6.2",
     "cytoscape": "^3.26.0",
     "cytoscape-cola": "^2.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0",
-    "react-router-dom": "^6.20.0",
-    "@types/react": "^18.2.12",
-    "@types/react-dom": "^18.2.5"
+    "react-router-dom": "^6.20.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -24,7 +26,7 @@
   "devDependencies": {
     "@types/cytoscape": "^3.19.9",
     "@types/jest": "^29.5.2",
-    "@types/node": "^20.3.1",
+    "@types/node": "^20.17.24",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "react-scripts": "^5.0.1",
