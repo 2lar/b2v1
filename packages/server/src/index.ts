@@ -35,7 +35,11 @@ app.use('/api/chatModes', chatModesRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  const clientBuildPath = path.join(__dirname, '../client/build');
+  const clientBuildPath = path.join(process.cwd(), 'packages/server/dist/client/build');
+    // Add these lines near where you define clientBuildPath
+    console.log(`__dirname is: ${__dirname}`);
+    console.log(`Resolved client path is: ${path.join(__dirname, '../client/build')}`);
+    console.log(`This path exists: ${fs.existsSync(path.join(__dirname, '../client/build'))}`);
   
   if (fs.existsSync(clientBuildPath)) {
     console.log(`Serving static files from: ${clientBuildPath}`);

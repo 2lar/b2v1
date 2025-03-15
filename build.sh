@@ -15,8 +15,8 @@ GENERATE_SOURCEMAP=false CI=false npm run build
 
 cd ../..
 
-# Copy client build to server
-mkdir -p packages/server/dist/client
-cp -r packages/client/build/* packages/server/dist/client/ || echo "Warning: Client build files not found."
+# Copy client build to server in the exact path the server is looking for
+mkdir -p packages/server/dist/client/build
+cp -r packages/client/build/* packages/server/dist/client/build/
 
 echo "Build completed successfully!"
