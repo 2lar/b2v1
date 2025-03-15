@@ -11,6 +11,7 @@ npm run build:server
 
 # Create a temporary tsconfig.json for the client that allows any imports
 cd packages/client
+GENERATE_SOURCEMAP=false TSC_COMPILE_ON_ERROR=true CI=false npm run build
 echo '{
   "compilerOptions": {
     "target": "es5",
