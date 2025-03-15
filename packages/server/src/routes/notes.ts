@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 // Import from shared package
@@ -85,7 +85,7 @@ const createConnections = (noteId: string, content: string): Connection[] => {
 };
 
 // Get all notes
-notesRouter.get('/', (req, res) => {
+notesRouter.get('/', (req: Request, res: Response) => {
   try {
     const notes = readNotes();
     res.json(notes);
@@ -96,7 +96,7 @@ notesRouter.get('/', (req, res) => {
 });
 
 // Create a new note
-notesRouter.post('/', async (req, res) => {
+notesRouter.post('/', async (req: Request, res: Response) => {
   try {
     const notes = readNotes();
     
@@ -131,7 +131,7 @@ notesRouter.post('/', async (req, res) => {
 });
 
 // Get recent notes with pagination
-notesRouter.get('/list/recent', (req, res) => {
+notesRouter.get('/list/recent', (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;

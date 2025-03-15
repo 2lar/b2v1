@@ -1,11 +1,11 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import * as llmClient from '../services/llmClient';
 import { LlmConfig } from '@b2/shared';
 
 export const llmRouter = express.Router();
 
 // Get LLM configuration
-llmRouter.get('/config', (req, res) => {
+llmRouter.get('/config', (req: Request, res: Response) => {
   try {
     const config = llmClient.getConfig();
     res.json(config);
@@ -16,7 +16,7 @@ llmRouter.get('/config', (req, res) => {
 });
 
 // Update LLM configuration
-llmRouter.put('/config', (req, res) => {
+llmRouter.put('/config', (req: Request, res: Response) => {
   try {
     const newConfig = req.body as Partial<LlmConfig>;
     const success = llmClient.updateConfig(newConfig);
@@ -36,7 +36,7 @@ llmRouter.put('/config', (req, res) => {
 });
 
 // Check LLM availability
-llmRouter.get('/status', async (req, res) => {
+llmRouter.get('/status', async (req: Request, res: Response) => {
   try {
     const available = await llmClient.isLlmAvailable();
     res.json({ available });
@@ -47,7 +47,7 @@ llmRouter.get('/status', async (req, res) => {
 });
 
 // Test LLM with a simple prompt
-llmRouter.post('/test', async (req, res) => {
+llmRouter.post('/test', async (req: Request, res: Response) => {
   try {
     const { prompt = "Summarize what you can do in one sentence." } = req.body;
     

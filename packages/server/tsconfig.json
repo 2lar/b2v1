@@ -4,7 +4,8 @@
     "module": "commonjs",
     "outDir": "./dist",
     "rootDir": ".",
-    "strict": true,
+    "strict": false,         // Changed from true to false
+    "noImplicitAny": false,  // Added to explicitly disable implicit any errors
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { readNotes, readConnections, writeConnections } from '../utils/fileHelpers';
 import { calculateSimilarity } from '../utils/textUtils';
 import { updateCategoriesFromConnection } from '../services/categoryService';
@@ -7,7 +7,7 @@ import { Connection, GraphData, Note } from '@b2/shared';
 export const graphRouter = express.Router();
 
 // Add this to your graph.ts file
-graphRouter.get('/debug', (req, res) => {
+graphRouter.get('/debug', (req: Request, res: Response) => {
   console.log("is anyting working")
   const notes: Note[] = readNotes();
   const connections = readConnections();
@@ -22,7 +22,7 @@ graphRouter.get('/debug', (req, res) => {
 });
 
 // Get graph data (notes + connections)
-graphRouter.get('/', (req, res) => {
+graphRouter.get('/', (req: Request, res: Response) => {
   try {
     const notes: Note[] = readNotes();
     const connections = readConnections();
@@ -52,7 +52,7 @@ graphRouter.get('/', (req, res) => {
 });
 
 // Create a new connection
-graphRouter.post('/connections', async (req, res) => {
+graphRouter.post('/connections', async (req: Request, res: Response) => {
   try {
     const { sourceId, targetId, type = 'manual' } = req.body;
     
@@ -100,7 +100,7 @@ graphRouter.post('/connections', async (req, res) => {
 });
 
 // Delete a connection
-graphRouter.delete('/connections/:id', (req, res) => {
+graphRouter.delete('/connections/:id', (req: Request, res: Response) => {
   try {
     const connections = readConnections();
     const filteredConnections = connections.filter(c => c.id !== req.params.id);
@@ -118,7 +118,7 @@ graphRouter.delete('/connections/:id', (req, res) => {
 });
 
 // Get connections for a specific note
-graphRouter.get('/connections/note/:noteId', (req, res) => {
+graphRouter.get('/connections/note/:noteId', (req: Request, res: Response) => {
   try {
     const noteId = req.params.noteId;
     const connections = readConnections();
@@ -135,7 +135,7 @@ graphRouter.get('/connections/note/:noteId', (req, res) => {
 });
 
 // Recalculate all connections (useful after importing data)
-graphRouter.post('/recalculate', async (req, res) => {
+graphRouter.post('/recalculate', async (req: Request, res: Response) => {
   try {
     const notes = readNotes();
     const newConnections: Connection[] = [];

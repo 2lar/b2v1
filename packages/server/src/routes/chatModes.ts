@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { getAllChatModes, getChatModeById } from '../../data/chatModes';
 
 export const chatModesRouter = express.Router();
 
 // Get all available chat modes
-chatModesRouter.get('/', (req, res) => {
+chatModesRouter.get('/', (req: Request, res: Response) => {
   try {
     const modes = getAllChatModes();
     res.json(modes);
@@ -15,7 +15,7 @@ chatModesRouter.get('/', (req, res) => {
 });
 
 // Get a specific chat mode by ID
-chatModesRouter.get('/:id', (req, res) => {
+chatModesRouter.get('/:id', (req: Request, res: Response) => {
   try {
     const mode = getChatModeById(req.params.id);
     

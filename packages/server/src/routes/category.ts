@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import * as categoryService from '../services/categoryService';
 
 export const categoryRouter = express.Router();
 
 // Get all categories
-categoryRouter.get('/', (req, res) => {
+categoryRouter.get('/', (req: Request, res: Response) => {
   try {
     const categories = categoryService.getAllCategories();
     res.json(categories);
@@ -13,9 +13,8 @@ categoryRouter.get('/', (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve categories' });
   }
 });
-
 // Get category hierarchy
-categoryRouter.get('/hierarchy', (req, res) => {
+categoryRouter.get('/hierarchy', (req: Request, res: Response) => {
   try {
     const hierarchy = categoryService.getCategoryHierarchy();
     res.json(hierarchy);
@@ -26,7 +25,7 @@ categoryRouter.get('/hierarchy', (req, res) => {
 });
 
 // Get notes by category
-categoryRouter.get('/:categoryId/notes', (req, res) => {
+categoryRouter.get('/:categoryId/notes', (req: Request, res: Response) => {
   try {
     const notes = categoryService.getNotesByCategory(req.params.categoryId);
     res.json(notes);
@@ -37,7 +36,7 @@ categoryRouter.get('/:categoryId/notes', (req, res) => {
 });
 
 // Get categories for a note
-categoryRouter.get('/note/:noteId', (req, res) => {
+categoryRouter.get('/note/:noteId', (req: Request, res: Response) => {
   try {
     const categories = categoryService.getNoteCategories(req.params.noteId);
     res.json(categories);
@@ -48,7 +47,7 @@ categoryRouter.get('/note/:noteId', (req, res) => {
 });
 
 // Rebuild all categories
-categoryRouter.post('/rebuild', async (req, res) => {
+categoryRouter.post('/rebuild', async (req: Request, res: Response) => {
   try {
     const results = await categoryService.rebuildAllCategories();
     res.json({

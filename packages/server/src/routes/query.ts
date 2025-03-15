@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import { readNotes, readLlmConfig } from '../utils/fileHelpers';
 import { calculateSimilarity } from '../utils/textUtils';
@@ -46,7 +46,7 @@ function processTemplate(template: string, variables: Record<string, string>): s
 }
 
 // Query the LLM
-queryRouter.post('/', async (req, res) => {
+queryRouter.post('/', async (req: Request, res: Response) => {
   try {
     const { query, modeId } = req.body as QueryRequest;
     
@@ -160,7 +160,7 @@ queryRouter.post('/', async (req, res) => {
 });
 
 // Simple query without AI (for testing or if Gemini is not configured)
-queryRouter.post('/simple', (req, res) => {
+queryRouter.post('/simple', (req: Request, res: Response) => {
   try {
     const { query, modeId } = req.body as QueryRequest;
     
