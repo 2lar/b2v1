@@ -6,6 +6,21 @@ import { Connection, GraphData, Note } from '@b2/shared';
 
 export const graphRouter = express.Router();
 
+// Add this to your graph.ts file
+graphRouter.get('/debug', (req, res) => {
+  console.log("is anyting working")
+  const notes: Note[] = readNotes();
+  const connections = readConnections();
+  res.json({
+    notesCount: notes.length,
+    notes: notes.slice(0, 2), // Just the first 2 for brevity
+    connectionsCount: connections.length,
+    connections: connections.slice(0, 2),
+    sampleSimilarity: notes.length >= 2 ? 
+      calculateSimilarity(notes[0].content, notes[1].content) : 'Not enough notes'
+  });
+});
+
 // Get graph data (notes + connections)
 graphRouter.get('/', (req, res) => {
   try {

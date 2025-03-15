@@ -41,6 +41,13 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
 
   // Initialize cytoscape once on component mount
   useEffect(() => {
+    console.log("GraphData received:", data);
+    console.log("Nodes:", data.nodes.length, "Edges:", data.edges.length);
+    
+    if (!containerRef.current) {
+      console.error("Container ref is null");
+      return;
+    }
     if (!containerRef.current) return;
 
     // Initialize cytoscape
@@ -130,7 +137,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
   // Set up event handlers separately to avoid recreating on every state change
   useEffect(() => {
     if (!cyRef.current) return;
-    
+    console.log("Graph data received:", data);
     const cy = cyRef.current;
     
     const handleNodeTap = (event: cytoscape.EventObject) => {

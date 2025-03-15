@@ -144,8 +144,8 @@ let inMemoryStorage = {
 };
 
 // Replace disk reading functions
-export const readNotes = () => inMemoryStorage.notes;
-export const writeNotes = (notes: never[]) => { inMemoryStorage.notes = notes; };
+export const readNotes = (): Note[] => readData<Note[]>(notesPath);
+export const writeNotes = (notes: Note[]): boolean => writeData(notesPath, notes);
 
 export const readConnections = (): Connection[] => readData<Connection[]>(connectionsPath);
 export const writeConnections = (connections: Connection[]): boolean => writeData(connectionsPath, connections);

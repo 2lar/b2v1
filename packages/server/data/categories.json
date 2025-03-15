@@ -28,13 +28,13 @@
       "id": "1742001521351_rqbywxo4k",
       "name": "General Utterance",
       "level": 0,
-      "noteCount": 9
+      "noteCount": 11
     },
     {
       "id": "1742001521351_gmg4fy75g",
       "name": "Casual Utterance",
       "level": 1,
-      "noteCount": 8
+      "noteCount": 10
     }
   ],
   "noteCategoryMap": {
@@ -93,6 +93,14 @@
       "1742001518790_pn9rp9flk"
     ],
     "1741835386035": [
+      "1742001521351_rqbywxo4k",
+      "1742001521351_gmg4fy75g"
+    ],
+    "1742005229583": [
+      "1742001521351_rqbywxo4k",
+      "1742001521351_gmg4fy75g"
+    ],
+    "1742006955573": [
       "1742001521351_rqbywxo4k",
       "1742001521351_gmg4fy75g"
     ]
