@@ -1,7 +1,14 @@
+// packages/server/src/services/categoryService.ts
+import mongoose from 'mongoose';
 import { Note, Category, CategoriesData } from '@b2/shared';
-import { readCategories, readNotes, writeCategories } from '../utils/fileHelpers';
 import { extractKeywords, calculateCosineSimilarity } from '../utils/textUtils';
 import * as llmClient from './llmClient';
+import {
+  Category as CategoryModel,
+  NoteCategory as NoteCategoryModel,
+  CategoryHierarchy as CategoryHierarchyModel,
+  Note as NoteModel
+} from '../models';
 
 interface CategoryResult {
   noteId: string;
@@ -24,33 +31,27 @@ interface ParentCategoryResult {
 /**
  * Find existing categories that match keywords
  */
-const findMatchingCategories = (keywords: string[], categories: Category[]): Category[] => {
-  const matches: Category[] = [];
-  
-  for (const category of categories) {
-    // Check if any keyword is in the category name
-    const categoryWords = category.name.toLowerCase().split(/\s+/);
-    const hasMatch = keywords.some(keyword => 
-      categoryWords.includes(keyword) || 
-      categoryWords.some(word => word.includes(keyword) || keyword.includes(word))
-    );
+const findMatchingCategories = async (keywords: string[]): Promise<Category[]> => {
+  try {
+    // Find categories that match any of the keywords
+    const categories = await CategoryModel.find({
+      name: {
+        $regex: keywords.join('|'),
+        $options: 'i'
+      }
+    });
     
-    if (hasMatch) {
-      matches.push({
-        id: category.id,
-        name: category.name,
-        level: category.level || 0,
-      });
-    }
+    return categories.map(cat => cat.toObject() as Category);
+  } catch (error) {
+    console.error('Error finding matching categories:', error);
+    return [];
   }
-  
-  return matches;
 };
 
 /**
  * Generate categories using LLM
  */
-const generateCategoriesWithLLM = async (noteContent: string, existingCategories: Category[]): Promise<GeneratedCategories | null> => {
+const generateCategoriesWithLLM = async (noteContent: string): Promise<GeneratedCategories | null> => {
   try {
     // Check if LLM is available
     const llmAvailable = await llmClient.isLlmAvailable();
@@ -58,6 +59,8 @@ const generateCategoriesWithLLM = async (noteContent: string, existingCategories
       return null;
     }
     
+    // Get existing categories for context
+    const existingCategories = await CategoryModel.find();
     const existingCategoryNames = existingCategories.map(c => c.name).join(', ');
     
     const prompt = `You are an expert at categorizing content. Please analyze this text and:
@@ -103,220 +106,334 @@ Only respond with the JSON.`;
  * Assign categories to a note
  */
 export const categorizeNote = async (note: Note): Promise<CategoryResult> => {
-  const categoriesData = readCategories();
-  const { categories, noteCategoryMap, hierarchy } = categoriesData;
-  
-  // Extract keywords from note content
-  const keywords = extractKeywords(note.content);
-  
-  // Find matching existing categories
-  const matchingCategories = findMatchingCategories(keywords, categories);
-  
-  let noteCategories: Category[] = [];
-  
-  // Try LLM categorization first
-  const aiCategories = await generateCategoriesWithLLM(note.content, categories);
-  
-  if (aiCategories && aiCategories.categories && aiCategories.categories.length > 0) {
-    // Process LLM-generated categories
-    noteCategories = aiCategories.categories.map(cat => {
-      // Check if this category already exists
-      const existingCategory = categories.find(c => 
-        c.name.toLowerCase() === cat.name.toLowerCase()
-      );
+  try {
+    // Extract keywords from note content
+    const keywords = extractKeywords(note.content);
+    
+    // Find matching existing categories
+    const matchingCategories = await findMatchingCategories(keywords);
+    
+    let noteCategories: Category[] = [];
+    
+    // Try LLM categorization first
+    const aiCategories = await generateCategoriesWithLLM(note.content);
+    
+    if (aiCategories && aiCategories.categories && aiCategories.categories.length > 0) {
+      // Start a session for transaction
+      const session = await mongoose.startSession();
+      session.startTransaction();
       
-      if (existingCategory) {
-        return {
-          id: existingCategory.id,
-          name: existingCategory.name,
-          level: cat.level
-        };
-      } else {
-        // Create new category
-        const newCategoryId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        return {
-          id: newCategoryId,
-          name: cat.name,
-          level: cat.level
-        };
+      try {
+        // Process LLM-generated categories
+        const processedCategories: Category[] = [];
+        
+        for (const cat of aiCategories.categories) {
+          // Check if this category already exists
+          let existingCategory = await CategoryModel.findOne({
+            name: { $regex: new RegExp(`^${cat.name}$`, 'i') }
+          }).session(session);
+          
+          if (existingCategory) {
+            processedCategories.push(existingCategory.toObject() as Category);
+          } else {
+            // Create new category
+            const newCategory = await CategoryModel.create([{
+              name: cat.name,
+              level: cat.level,
+              noteCount: 0
+            }], { session });
+            
+            processedCategories.push(newCategory[0].toObject() as Category);
+          }
+        }
+        
+        // Update note-category mappings
+        const noteCategoryMappings = processedCategories.map(cat => ({
+          noteId: note.id,
+          categoryId: cat.id
+        }));
+        
+        // Remove any existing mappings for this note
+        await NoteCategoryModel.deleteMany({ noteId: note.id }, { session });
+        
+        // Create new mappings
+        if (noteCategoryMappings.length > 0) {
+          await NoteCategoryModel.insertMany(noteCategoryMappings, { session });
+        }
+        
+        // Update category hierarchy
+        for (let i = 0; i < processedCategories.length; i++) {
+          const currentCat = processedCategories[i];
+          
+          // Find parent category (category with level-1)
+          if (currentCat.level > 0) {
+            const parentCat = processedCategories.find(c => c.level === currentCat.level - 1);
+            
+            if (parentCat) {
+              // Check if hierarchy relation already exists
+              const existingHierarchy = await CategoryHierarchyModel.findOne({
+                parentId: parentCat.id,
+                childId: currentCat.id
+              }).session(session);
+              
+              if (!existingHierarchy) {
+                await CategoryHierarchyModel.create([{
+                  parentId: parentCat.id,
+                  childId: currentCat.id
+                }], { session });
+              }
+            }
+          }
+        }
+        
+        // Update note counts for categories
+        for (const category of processedCategories) {
+          await CategoryModel.findByIdAndUpdate(
+            category.id,
+            { $inc: { noteCount: 1 } },
+            { session }
+          );
+        }
+        
+        // Commit transaction
+        await session.commitTransaction();
+        
+        noteCategories = processedCategories;
+      } catch (error) {
+        // Abort transaction on error
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
       }
-    });
-  } else if (matchingCategories.length > 0) {
-    // Use matching categories if LLM categorization failed
-    noteCategories = matchingCategories;
-  } else if (keywords.length > 0) {
-    // Create a new category from top keywords if no matches
-    const categoryName = keywords[0].charAt(0).toUpperCase() + keywords[0].slice(1);
-    const categoryId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    noteCategories = [{ 
-      id: categoryId,
-      name: categoryName,
-      level: 0
-    }];
-  }
-  
-  // Update categories and hierarchy
-  const updatedCategories = [...categories];
-  
-  for (const category of noteCategories) {
-    // Add category if it doesn't exist
-    if (!updatedCategories.some(c => c.id === category.id)) {
-      updatedCategories.push({
-        id: category.id,
-        name: category.name,
-        level: category.level || 0,
-        noteCount: 0
+    } else if (matchingCategories.length > 0) {
+      // Use matching categories if LLM categorization failed
+      noteCategories = matchingCategories;
+      
+      // Create note-category mappings
+      const noteCategoryMappings = matchingCategories.map(cat => ({
+        noteId: note.id,
+        categoryId: cat.id
+      }));
+      
+      // Remove any existing mappings for this note
+      await NoteCategoryModel.deleteMany({ noteId: note.id });
+      
+      // Create new mappings
+      if (noteCategoryMappings.length > 0) {
+        await NoteCategoryModel.insertMany(noteCategoryMappings);
+      }
+      
+      // Update note counts for categories
+      for (const category of matchingCategories) {
+        await CategoryModel.findByIdAndUpdate(
+          category.id,
+          { $inc: { noteCount: 1 } }
+        );
+      }
+    } else if (keywords.length > 0) {
+      // Create a new category from top keywords if no matches
+      const categoryName = keywords[0].charAt(0).toUpperCase() + keywords[0].slice(1);
+      
+      const newCategory = await CategoryModel.create({
+        name: categoryName,
+        level: 0,
+        noteCount: 1
       });
+      
+      // Create note-category mapping
+      await NoteCategoryModel.create({
+        noteId: note.id,
+        categoryId: newCategory.id
+      });
+      
+      noteCategories = [newCategory.toObject() as Category];
     }
     
-    // Update hierarchy
-    if (category.level > 0) {
-      // Find parent category (category with level-1)
-      const parentCategory = noteCategories.find(c => c.level === category.level - 1);
-      if (parentCategory) {
-        if (!hierarchy[parentCategory.id]) {
-          hierarchy[parentCategory.id] = [];
-        }
-        if (!hierarchy[parentCategory.id].includes(category.id)) {
-          hierarchy[parentCategory.id].push(category.id);
-        }
-      }
-    }
+    return {
+      noteId: note.id,
+      categories: noteCategories
+    };
+  } catch (error) {
+    console.error('Error categorizing note:', error);
+    return {
+      noteId: note.id,
+      categories: []
+    };
   }
-  
-  // Update note category map and note counts
-  const updatedNoteCategoryMap = { ...noteCategoryMap };
-  updatedNoteCategoryMap[note.id] = noteCategories.map(c => c.id);
-  
-  // Update note counts for categories
-  for (const categoryId of updatedNoteCategoryMap[note.id]) {
-    const categoryIndex = updatedCategories.findIndex(c => c.id === categoryId);
-    if (categoryIndex !== -1) {
-      updatedCategories[categoryIndex] = {
-        ...updatedCategories[categoryIndex],
-        noteCount: (updatedCategories[categoryIndex].noteCount || 0) + 1
-      };
-    }
-  }
-  
-  // Save categories data
-  writeCategories({ 
-    categories: updatedCategories, 
-    noteCategoryMap: updatedNoteCategoryMap, 
-    hierarchy 
-  });
-  
-  return {
-    noteId: note.id,
-    categories: noteCategories
-  };
 };
 
 /**
  * Get categories for a note
  */
-export const getNoteCategories = (noteId: string): Category[] => {
-  const categoriesData = readCategories();
-  const { categories, noteCategoryMap } = categoriesData;
-  
-  const categoryIds = noteCategoryMap[noteId] || [];
-  return categoryIds.map(id => {
-    const category = categories.find(c => c.id === id);
-    return category || null;
-  }).filter((category): category is Category => category !== null);
+export const getNoteCategories = async (noteId: string): Promise<Category[]> => {
+  try {
+    // Find all category mappings for the note
+    const noteCategoryMappings = await NoteCategoryModel.find({ noteId });
+    
+    if (noteCategoryMappings.length === 0) {
+      return [];
+    }
+    
+    // Get all category IDs
+    const categoryIds = noteCategoryMappings.map(mapping => mapping.categoryId);
+    
+    // Find all categories
+    const categories = await CategoryModel.find({ _id: { $in: categoryIds } });
+    
+    return categories.map(cat => cat.toObject() as Category);
+  } catch (error) {
+    console.error('Error getting note categories:', error);
+    return [];
+  }
 };
 
 /**
  * Get all categories
  */
-export const getAllCategories = (): Category[] => {
-  const categoriesData = readCategories();
-  return categoriesData.categories;
+export const getAllCategories = async (): Promise<Category[]> => {
+  try {
+    const categories = await CategoryModel.find().sort({ level: 1, name: 1 });
+    return categories.map(cat => cat.toObject() as Category);
+  } catch (error) {
+    console.error('Error getting all categories:', error);
+    return [];
+  }
 };
 
 /**
  * Get category hierarchy
  */
-export const getCategoryHierarchy = (): { categories: Category[], hierarchy: Record<string, string[]> } => {
-  const categoriesData = readCategories();
-  return {
-    categories: categoriesData.categories,
-    hierarchy: categoriesData.hierarchy
-  };
+export const getCategoryHierarchy = async (): Promise<{ categories: Category[], hierarchy: Record<string, string[]> }> => {
+  try {
+    // Get all categories
+    const categories = await CategoryModel.find().sort({ level: 1, name: 1 });
+    
+    // Get category hierarchy
+    const hierarchyRelations = await CategoryHierarchyModel.find();
+    
+    // Build hierarchy map
+    const hierarchy: Record<string, string[]> = {};
+    
+    hierarchyRelations.forEach(relation => {
+      if (!hierarchy[relation.parentId]) {
+        hierarchy[relation.parentId] = [];
+      }
+      hierarchy[relation.parentId].push(relation.childId);
+    });
+    
+    return {
+      categories: categories.map(cat => cat.toObject() as Category),
+      hierarchy
+    };
+  } catch (error) {
+    console.error('Error getting category hierarchy:', error);
+    return { categories: [], hierarchy: {} };
+  }
 };
 
 /**
  * Get notes by category
  */
-export const getNotesByCategory = (categoryId: string): Note[] => {
-  const categoriesData = readCategories();
-  const { noteCategoryMap } = categoriesData;
-  const notes: Note[] = readNotes();
-  
-  // Find all notes with this category
-  const noteIds = Object.entries(noteCategoryMap)
-    .filter(([_, categories]) => categories.includes(categoryId))
-    .map(([noteId]) => noteId);
-  
-  return notes.filter(note => noteIds.includes(note.id));
+export const getNotesByCategory = async (categoryId: string): Promise<Note[]> => {
+  try {
+    // Find all note-category mappings for this category
+    const noteCategoryMappings = await NoteCategoryModel.find({ categoryId });
+    
+    if (noteCategoryMappings.length === 0) {
+      return [];
+    }
+    
+    // Get all note IDs
+    const noteIds = noteCategoryMappings.map(mapping => mapping.noteId);
+    
+    // Find all notes
+    const notes = await NoteModel.find({ _id: { $in: noteIds } });
+    
+    return notes.map(note => note.toObject() as Note);
+  } catch (error) {
+    console.error('Error getting notes by category:', error);
+    return [];
+  }
 };
 
 /**
  * Rebuild categories for all notes
- * This can be useful to run periodically to refine categories as new content is added
  */
 export const rebuildAllCategories = async (): Promise<CategoryResult[]> => {
-  const notes = readNotes();
-  const results: CategoryResult[] = [];
-  
-  // Clear existing category data
-  const categoriesData: CategoriesData = {
-    categories: [],
-    noteCategoryMap: {},
-    hierarchy: {}
-  };
-  writeCategories(categoriesData);
-  
-  // Categorize each note
-  for (const note of notes) {
-    const result = await categorizeNote(note);
-    results.push(result);
+  try {
+    // Start a session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      // Clear existing category data
+      await CategoryModel.deleteMany({}, { session });
+      await NoteCategoryModel.deleteMany({}, { session });
+      await CategoryHierarchyModel.deleteMany({}, { session });
+      
+      // Commit the first phase of clearing data
+      await session.commitTransaction();
+      
+      // Start a new transaction for rebuilding
+      session.startTransaction();
+      
+      // Get all notes
+      const notes = await NoteModel.find();
+      const results: CategoryResult[] = [];
+      
+      // Categorize each note
+      for (const note of notes) {
+        const result = await categorizeNote(note.toObject() as Note);
+        results.push(result);
+      }
+      
+      // Commit the rebuild
+      await session.commitTransaction();
+      
+      return results;
+    } catch (error) {
+      // Abort transaction on error
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  } catch (error) {
+    console.error('Error rebuilding categories:', error);
+    return [];
   }
-  
-  return results;
 };
 
 /**
  * Update categories when notes are connected
- * When two notes are connected, we may want to refine their categorization
  */
 export const updateCategoriesFromConnection = async (
   sourceNoteId: string, 
   targetNoteId: string, 
   strength: number
 ): Promise<ParentCategoryResult | null> => {
-  const notes: Note[] = readNotes();
-  const sourceNote = notes.find(note => note.id === sourceNoteId);
-  const targetNote = notes.find(note => note.id === targetNoteId);
-  
-  if (!sourceNote || !targetNote) return null;
-  
-  const categoriesData = readCategories();
-  const { categories, noteCategoryMap, hierarchy } = categoriesData;
-  
-  // Get existing categories for both notes
-  const sourceCategories = getNoteCategories(sourceNoteId);
-  const targetCategories = getNoteCategories(targetNoteId);
-  
-  // Only proceed if the connection is strong and the notes have different categories
-  if (strength < 0.5) return null;
-  
-  // Find common topics between the notes
-  const combinedText = sourceNote.content + ' ' + targetNote.content;
-  const keywords = extractKeywords(combinedText);
-  
-  // Determine if we need to create a higher-level category to group these notes
-  if (sourceCategories.length > 0 && targetCategories.length > 0) {
+  try {
+    if (strength < 0.5) return null;
+    
+    // Find the source and target notes
+    const sourceNote = await NoteModel.findById(sourceNoteId);
+    const targetNote = await NoteModel.findById(targetNoteId);
+    
+    if (!sourceNote || !targetNote) return null;
+    
+    // Get existing categories for both notes
+    const sourceCategories = await getNoteCategories(sourceNoteId);
+    const targetCategories = await getNoteCategories(targetNoteId);
+    
+    // Only proceed if the notes have different categories
+    if (sourceCategories.length === 0 || targetCategories.length === 0) return null;
+    
+    // Find common topics between the notes
+    const combinedText = sourceNote.content + ' ' + targetNote.content;
+    const keywords = extractKeywords(combinedText);
+    
+    // Determine if we need to create a higher-level category
     const sourceCategoryNames = sourceCategories.map(c => c.name.toLowerCase());
     const targetCategoryNames = targetCategories.map(c => c.name.toLowerCase());
     
@@ -330,8 +447,7 @@ export const updateCategoriesFromConnection = async (
     if (hasOverlap) {
       // Create or find a parent category that can group these
       const aiResponse = await generateCategoriesWithLLM(
-        `Note 1: ${sourceNote.content}\nNote 2: ${targetNote.content}`,
-        categories
+        `Note 1: ${sourceNote.content}\nNote 2: ${targetNote.content}`
       );
       
       if (aiResponse && aiResponse.categories && aiResponse.categories.length > 0) {
@@ -341,77 +457,105 @@ export const updateCategoriesFromConnection = async (
           aiResponse.categories[0]
         );
         
-        // Create or find this category
-        let parentCategoryId: string;
-        const existingCategory = categories.find(c => 
-          c.name.toLowerCase() === parentCategory.name.toLowerCase()
-        );
+        // Start a session for transaction
+        const session = await mongoose.startSession();
+        session.startTransaction();
         
-        if (existingCategory) {
-          parentCategoryId = existingCategory.id;
-        } else {
-          parentCategoryId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-          categories.push({
-            id: parentCategoryId,
-            name: parentCategory.name,
-            level: 0, // This is a parent category
-            noteCount: 0
-          });
-        }
-        
-        // Link all categories to this parent
-        for (const sourceCategory of sourceCategories) {
-          if (!hierarchy[parentCategoryId]) {
-            hierarchy[parentCategoryId] = [];
+        try {
+          // Create or find this category
+          let parentCategoryDoc = await CategoryModel.findOne({
+            name: { $regex: new RegExp(`^${parentCategory.name}$`, 'i') }
+          }).session(session);
+          
+          if (!parentCategoryDoc) {
+            parentCategoryDoc = (await CategoryModel.create([{
+              name: parentCategory.name,
+              level: 0, // This is a parent category
+              noteCount: 0
+            }], { session }))[0];
           }
-          if (!hierarchy[parentCategoryId].includes(sourceCategory.id)) {
-            hierarchy[parentCategoryId].push(sourceCategory.id);
-          }
-        }
-        
-        for (const targetCategory of targetCategories) {
-          if (!hierarchy[parentCategoryId]) {
-            hierarchy[parentCategoryId] = [];
-          }
-          if (!hierarchy[parentCategoryId].includes(targetCategory.id)) {
-            hierarchy[parentCategoryId].push(targetCategory.id);
-          }
-        }
-        
-        // Add parent category to both notes
-        for (const noteId of [sourceNoteId, targetNoteId]) {
-          if (!noteCategoryMap[noteId]) {
-            noteCategoryMap[noteId] = [];
-          }
-          if (!noteCategoryMap[noteId].includes(parentCategoryId)) {
-            noteCategoryMap[noteId].push(parentCategoryId);
+          
+          const parentCategoryId = parentCategoryDoc.id;
+          
+          // Link source categories to this parent
+          for (const sourceCategory of sourceCategories) {
+            // Check if hierarchy relation already exists
+            const existingHierarchy = await CategoryHierarchyModel.findOne({
+              parentId: parentCategoryId,
+              childId: sourceCategory.id
+            }).session(session);
             
-            // Update note count
-            const category = categories.find(c => c.id === parentCategoryId);
-            if (category) {
-              const categoryIndex = categories.indexOf(category);
-              categories[categoryIndex] = {
-                ...category,
-                noteCount: (category.noteCount || 0) + 1
-              };
+            if (!existingHierarchy) {
+              await CategoryHierarchyModel.create([{
+                parentId: parentCategoryId,
+                childId: sourceCategory.id
+              }], { session });
             }
           }
-        }
-        
-        // Save updated categories
-        writeCategories({ categories, noteCategoryMap, hierarchy });
-        
-        return {
-          sourceNoteId,
-          targetNoteId,
-          parentCategory: {
-            id: parentCategoryId,
-            name: parentCategory.name
+          
+          // Link target categories to this parent
+          for (const targetCategory of targetCategories) {
+            // Check if hierarchy relation already exists
+            const existingHierarchy = await CategoryHierarchyModel.findOne({
+              parentId: parentCategoryId,
+              childId: targetCategory.id
+            }).session(session);
+            
+            if (!existingHierarchy) {
+              await CategoryHierarchyModel.create([{
+                parentId: parentCategoryId,
+                childId: targetCategory.id
+              }], { session });
+            }
           }
-        };
+          
+          // Add parent category to both notes
+          for (const noteId of [sourceNoteId, targetNoteId]) {
+            // Check if mapping already exists
+            const existingMapping = await NoteCategoryModel.findOne({
+              noteId,
+              categoryId: parentCategoryId
+            }).session(session);
+            
+            if (!existingMapping) {
+              await NoteCategoryModel.create([{
+                noteId,
+                categoryId: parentCategoryId
+              }], { session });
+              
+              // Update note count
+              await CategoryModel.findByIdAndUpdate(
+                parentCategoryId,
+                { $inc: { noteCount: 1 } },
+                { session }
+              );
+            }
+          }
+          
+          // Commit the transaction
+          await session.commitTransaction();
+          
+          return {
+            sourceNoteId,
+            targetNoteId,
+            parentCategory: {
+              id: parentCategoryId,
+              name: parentCategory.name
+            }
+          };
+        } catch (error) {
+          // Abort transaction on error
+          await session.abortTransaction();
+          throw error;
+        } finally {
+          session.endSession();
+        }
       }
     }
+    
+    return null;
+  } catch (error) {
+    console.error('Error updating categories from connection:', error);
+    return null;
   }
-  
-  return null;
 };

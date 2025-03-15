@@ -1,38 +1,28 @@
 import express, { Request, Response } from 'express';
-import { readNotes, readConnections, writeConnections } from '../utils/fileHelpers';
+import mongoose from 'mongoose';
+import { GraphData, Note, Connection } from '@b2/shared';
 import { calculateSimilarity } from '../utils/textUtils';
 import { updateCategoriesFromConnection } from '../services/categoryService';
-import { Connection, GraphData, Note } from '@b2/shared';
+import { 
+  Note as NoteModel,
+  Connection as ConnectionModel
+} from '../models';
 
 export const graphRouter = express.Router();
 
-// Add this to your graph.ts file
-graphRouter.get('/debug', (req: Request, res: Response) => {
-  console.log("is anyting working")
-  const notes: Note[] = readNotes();
-  const connections = readConnections();
-  res.json({
-    notesCount: notes.length,
-    notes: notes.slice(0, 2), // Just the first 2 for brevity
-    connectionsCount: connections.length,
-    connections: connections.slice(0, 2),
-    sampleSimilarity: notes.length >= 2 ? 
-      calculateSimilarity(notes[0].content, notes[1].content) : 'Not enough notes'
-  });
-});
-
 // Get graph data (notes + connections)
-graphRouter.get('/', (req: Request, res: Response) => {
+graphRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const notes: Note[] = readNotes();
-    const connections = readConnections();
+    // Get notes and connections from MongoDB
+    const notes = await NoteModel.find();
+    const connections = await ConnectionModel.find();
     
     // Format for visualization
     const nodes = notes.map(note => ({
       id: note.id,
       label: note.content.substring(0, 30) + (note.content.length > 30 ? '...' : ''),
       content: note.content,
-      createdAt: note.createdAt
+      createdAt: note.createdAt.toString()
     }));
     
     const edges = connections.map(conn => ({
@@ -60,12 +50,9 @@ graphRouter.post('/connections', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Source and target IDs are required' });
     }
     
-    const notes: Note[] = readNotes();
-    const connections = readConnections();
-    
     // Verify that both notes exist
-    const sourceNote = notes.find(note => note.id === sourceId);
-    const targetNote = notes.find(note => note.id === targetId);
+    const sourceNote = await NoteModel.findById(sourceId);
+    const targetNote = await NoteModel.findById(targetId);
     
     if (!sourceNote || !targetNote) {
       return res.status(404).json({ error: 'One or both notes not found' });
@@ -74,17 +61,14 @@ graphRouter.post('/connections', async (req: Request, res: Response) => {
     // Calculate similarity for weight
     const similarity = calculateSimilarity(sourceNote.content, targetNote.content);
     
-    const newConnection: Connection = {
-      id: Date.now() + Math.random().toString(36).substring(2, 9),
+    // Create a new connection
+    const newConnection = await ConnectionModel.create({
       sourceId,
       targetId,
       strength: type === 'manual' ? Math.max(similarity, 0.5) : similarity, // Manual connections have higher min strength
       type,
-      createdAt: new Date().toISOString()
-    };
-    
-    connections.push(newConnection);
-    writeConnections(connections);
+      createdAt: new Date()
+    });
     
     // Update categories based on this new connection
     const categoryUpdate = await updateCategoriesFromConnection(sourceId, targetId, newConnection.strength);
@@ -100,15 +84,13 @@ graphRouter.post('/connections', async (req: Request, res: Response) => {
 });
 
 // Delete a connection
-graphRouter.delete('/connections/:id', (req: Request, res: Response) => {
+graphRouter.delete('/connections/:id', async (req: Request, res: Response) => {
   try {
-    const connections = readConnections();
-    const filteredConnections = connections.filter(c => c.id !== req.params.id);
+    const result = await ConnectionModel.findByIdAndDelete(req.params.id);
     
-    if (filteredConnections.length === connections.length) {
+    if (!result) {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    writeConnections(filteredConnections);
     
     res.json({ message: 'Connection deleted successfully' });
   } catch (error) {
@@ -118,14 +100,13 @@ graphRouter.delete('/connections/:id', (req: Request, res: Response) => {
 });
 
 // Get connections for a specific note
-graphRouter.get('/connections/note/:noteId', (req: Request, res: Response) => {
+graphRouter.get('/connections/note/:noteId', async (req: Request, res: Response) => {
   try {
     const noteId = req.params.noteId;
-    const connections = readConnections();
     
-    const noteConnections = connections.filter(
-      conn => conn.sourceId === noteId || conn.targetId === noteId
-    );
+    const noteConnections = await ConnectionModel.find({
+      $or: [{ sourceId: noteId }, { targetId: noteId }]
+    });
     
     res.json(noteConnections);
   } catch (error) {
@@ -137,42 +118,96 @@ graphRouter.get('/connections/note/:noteId', (req: Request, res: Response) => {
 // Recalculate all connections (useful after importing data)
 graphRouter.post('/recalculate', async (req: Request, res: Response) => {
   try {
-    const notes = readNotes();
-    const newConnections: Connection[] = [];
+    // Get all notes
+    const notes = await NoteModel.find();
     
-    // Create connections between all notes with sufficient similarity
-    for (let i = 0; i < notes.length; i++) {
-      for (let j = i + 1; j < notes.length; j++) {
-        const note1: Note = notes[i];
-        const note2: Note = notes[j];
-        
-        const similarity = calculateSimilarity(note1.content, note2.content);
-        
-        if (similarity > 0.1) {
-          const connection: Connection = {
-            id: Date.now() + '_' + Math.random().toString(36).substring(2, 9),
-            sourceId: note1.id,
-            targetId: note2.id,
-            strength: similarity,
-            type: 'automatic',
-            createdAt: new Date().toISOString()
-          };
+    // Start a session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      // Delete all automatic connections (keep manual ones)
+      await ConnectionModel.deleteMany({ type: 'automatic' }, { session });
+      
+      // New connections to create
+      const newConnectionsData = [];
+      
+      // Create connections between all notes with sufficient similarity
+      for (let i = 0; i < notes.length; i++) {
+        for (let j = i + 1; j < notes.length; j++) {
+          const note1 = notes[i];
+          const note2 = notes[j];
           
-          newConnections.push(connection);
+          const similarity = calculateSimilarity(note1.content, note2.content);
           
-          // Update categories based on this connection
-          await updateCategoriesFromConnection(note1.id, note2.id, similarity);
+          if (similarity > 0.1) {
+            newConnectionsData.push({
+              sourceId: note1.id,
+              targetId: note2.id,
+              strength: similarity,
+              type: 'automatic',
+              createdAt: new Date()
+            });
+          }
         }
       }
+      
+      // Insert all new connections at once if any
+      if (newConnectionsData.length > 0) {
+        await ConnectionModel.insertMany(newConnectionsData, { session });
+      }
+      
+      // For each connection, update categories
+      for (const connData of newConnectionsData) {
+        await updateCategoriesFromConnection(
+          connData.sourceId, 
+          connData.targetId, 
+          connData.strength
+        );
+      }
+      
+      // Commit the transaction
+      await session.commitTransaction();
+      
+      res.json({ 
+        message: 'Connections recalculated successfully',
+        connectionCount: newConnectionsData.length
+      });
+    } catch (error) {
+      // Abort transaction on error
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-    writeConnections(newConnections);
-    
-    res.json({ 
-      message: 'Connections recalculated successfully',
-      connectionCount: newConnections.length
-    });
   } catch (error) {
     console.error('Error recalculating connections:', error);
     res.status(500).json({ error: 'Failed to recalculate connections' });
+  }
+});
+
+// Add debug endpoint 
+graphRouter.get('/debug', async (req: Request, res: Response) => {
+  try {
+    const noteCount = await NoteModel.countDocuments();
+    const connectionCount = await ConnectionModel.countDocuments();
+    
+    const sampleNotes = await NoteModel.find().limit(2);
+    const sampleConnections = await ConnectionModel.find().limit(2);
+    
+    const sampleSimilarity = sampleNotes.length >= 2 ? 
+      calculateSimilarity(sampleNotes[0].content, sampleNotes[1].content) : 
+      'Not enough notes';
+    
+    res.json({
+      notesCount: noteCount,
+      notes: sampleNotes,
+      connectionsCount: connectionCount,
+      connections: sampleConnections,
+      sampleSimilarity
+    });
+  } catch (error) {
+    console.error('Error in graph debug:', error);
+    res.status(500).json({ error: 'Failed to retrieve debug information' });
   }
 });
