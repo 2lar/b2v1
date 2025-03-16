@@ -126,23 +126,94 @@ queryRouter.post('/', async (req: Request, res: Response) => {
       }
     }
     
-    // Find relevant notes
+    // Find relevant notes - with special handling for therapist mode
     const notes = await NoteModel.find();
     
-    const relevantNotes = notes
-      .map(note => ({
+    let relevantNotes;
+    
+    // Special handling for Reflective Therapist - include more notes for context
+    if (chatMode?.id === 'therapist') {
+      // For therapist mode, we include more notes but still prioritize most relevant ones
+      const notesWithRelevance = notes.map(note => ({
         ...note.toObject(),
         relevance: calculateSimilarity(query, note.content)
-      }))
-      .filter(note => note.relevance > 0.1)
-      .sort((a, b) => b.relevance - a.relevance)
-      .slice(0, 3);
+      }));
+      
+      // Get highly relevant notes (direct relevance to query)
+      const directlyRelevant = notesWithRelevance
+        .filter(note => note.relevance > 0.15)
+        .sort((a, b) => b.relevance - a.relevance);
+      
+      // Get additional self-reflective notes by searching for personal keywords
+      const personalKeywords = [
+        // Core self-reflection phrases
+        'I feel', 'I think', 'I am', 'myself', 'my life', 'my thoughts', 'my emotions', 'my beliefs',
+        
+        // Emotional states
+        'stress', 'anxiety', 'worry', 'overwhelmed', 'burnout', 'exhausted', 'depressed', 'hopeless', 'lonely', 
+        'grief', 'heartbreak', 'fear', 'doubt', 'guilt', 'shame', 'regret', 'self-doubt', 'self-conscious',
+        'insecure', 'nervous', 'panic', 'resentment', 'frustrated', 'irritated', 'angry', 'rage', 'sad', 'unhappy',
+        'joy', 'happiness', 'grateful', 'content', 'fulfilled', 'excited', 'proud', 'peaceful', 'calm',
+        
+        // Therapy-related terms
+        'self-awareness', 'self-discovery', 'inner child', 'healing', 'therapy', 'therapist', 'counseling', 
+        'mental health', 'emotional well-being', 'trauma', 'recovery', 'processing emotions', 'coping strategies',
+        'growth', 'self-improvement', 'personal development', 'journaling', 'meditation', 'mindfulness',
+        
+        // Self-perception & identity
+        'who am I', 'finding myself', 'self-identity', 'self-worth', 'self-love', 'self-care', 
+        'personal growth', 'life purpose', 'what I want', 'what matters to me', 'core values',
+        
+        // Self-talk and introspection
+        'I should', 'I need to', 'I wish', 'I want', 'I hope', 'I regret', 'I wonder', 'I question',
+        'my habits', 'my patterns', 'why do I', 'why am I', 'what if', 'what does it mean', 'how do I feel',
+      
+        // Life challenges & existential thoughts
+        'life meaning', 'what is my purpose', 'what makes me happy', 'how do I change', 'how do I improve',
+        'how do I let go', 'how do I move on', 'forgiveness', 'acceptance', 'letting go', 'starting over',
+        
+        // Philosophy & deep thinking
+        'existence', 'who we are', 'human nature', 'self-reflection', 'wisdom', 'enlightenment', 'introspection',
+        'perception of reality', 'inner peace', 'emotional intelligence', 'self-actualization', 'self-transcendence'
+      ];
+      
+      const selfReflectiveNotes = notesWithRelevance
+        .filter(note => {
+          // Check if note contains personal reflection keywords
+          const content = note.content.toLowerCase();
+          return personalKeywords.some(keyword => content.includes(keyword.toLowerCase()));
+        })
+        .filter(note => !directlyRelevant.some(relevant => relevant.id === note.id)) // Exclude already included notes
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Prioritize recent self-reflective notes
+        .slice(0, 5); // Limit to 5 additional self-reflective notes
+      
+      // Combine directly relevant and self-reflective notes
+      relevantNotes = [...directlyRelevant, ...selfReflectiveNotes]
+        .sort((a, b) => b.relevance - a.relevance) // Sort by relevance
+        .slice(0, 10); // Limit total to 8 notes to avoid context overflow
+    } else {
+      // Standard relevance filtering for other modes
+      relevantNotes = notes
+        .map(note => ({
+          ...note.toObject(),
+          relevance: calculateSimilarity(query, note.content)
+        }))
+        .filter(note => note.relevance > 0.1)
+        .sort((a, b) => b.relevance - a.relevance)
+        .slice(0, 3);
+    }
     
     // Create context from relevant notes
     let context = '';
     if (relevantNotes.length > 0) {
-      context = relevantNotes.map((note, i) => 
-        `[${i+1}] ${note.content}`
+      // For therapist mode, add a special header
+      if (chatMode?.id === 'therapist') {
+        context = 'Here are some of the user\'s previous thoughts and reflections:\n\n';
+      }
+      
+      // Add the notes content
+      context += relevantNotes.map((note, i) => 
+        `[${i+1}] ${note.content} (${new Date(note.createdAt).toLocaleDateString()})`
       ).join('\n\n');
     }
     
