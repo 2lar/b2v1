@@ -4,15 +4,18 @@
   "private": true,
   "dependencies": {
     "@b2/shared": "*",
+    "@types/lodash-es": "^4.17.12",
+    "@types/react": "^18.2.12",
+    "@types/react-dom": "^18.2.5",
     "axios": "^1.6.2",
     "cytoscape": "^3.26.0",
     "cytoscape-cola": "^2.5.1",
+    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0",
-    "react-router-dom": "^6.20.0",
-    "@types/react": "^18.2.12",
-    "@types/react-dom": "^18.2.5"
+    "react-router-dom": "^6.20.0"
   },
   "scripts": {
     "start": "react-scripts start",

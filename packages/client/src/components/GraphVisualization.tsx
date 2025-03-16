@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import cytoscape, { Core, NodeSingular } from 'cytoscape';
+import cytoscape, { Core, NodeCollection, NodeSingular } from 'cytoscape';
 import cola from 'cytoscape-cola';
 import { GraphData } from '@b2/shared';
+import { throttle } from 'lodash-es';
 import './GraphVisualization.css';
 
 // Register the cola layout
@@ -116,14 +117,18 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         name: 'grid' // Initial layout, will be replaced
       },
       // Set min/max zoom levels
-      minZoom: 0.2,
-      maxZoom: 3,
-      wheelSensitivity: 0.3,
+      zoomingEnabled: true,
+      userZoomingEnabled: true,
+      minZoom: 0.1,
+      maxZoom: 10,
+      wheelSensitivity: 0.2,
       motionBlur: false // Disable motion blur for better performance
     });
 
     // Store reference to cytoscape instance
     cyRef.current = cy;
+
+    preventViewportReset(cy);
     
     return () => {
       // Clean up only when component unmounts
@@ -133,6 +138,79 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
       }
     };
   }, []); // Empty dependency array means this only runs once on mount
+
+  const preventViewportReset = (cy: Core) => {
+    // Create a custom viewport manager that keeps track of user's view
+    let userViewport = {
+      zoom: cy.zoom(),
+      pan: cy.pan()
+    };
+    
+    // Only update when user intentionally changes view
+    let viewChanged = false;
+    
+    // Listen for user-initiated zoom/pan
+    cy.on('zoom pan', () => {
+      if (!viewChanged) {
+        userViewport = {
+          zoom: cy.zoom(),
+          pan: cy.pan()
+        };
+      }
+    });
+    
+    // Override the fit function
+    const originalFit = cy.fit;
+    cy.fit = function(eles?: any, padding?: number) {
+      // Check for manual reset via a different approach
+      if (arguments[2] === true || arguments[0]?.reset === true) {
+        viewChanged = true;
+        const result = originalFit.apply(cy, [eles, padding]);
+        
+        // Update user viewport after manual reset
+        setTimeout(() => {
+          userViewport = {
+            zoom: cy.zoom(),
+            pan: cy.pan()
+          };
+          viewChanged = false;
+        }, 100);
+        
+        return result;
+      }
+      return cy;
+    };
+    
+    // Periodically check if view was reset unexpectedly
+    setInterval(() => {
+      // Don't restore during user interactions
+      if (cy.nodes().filter(':grabbed').length > 0) return;
+      
+      const currentZoom = cy.zoom();
+      const currentPan = cy.pan();
+      
+      // If viewport changed without user action, restore
+      if (!viewChanged && 
+          (Math.abs(currentZoom - userViewport.zoom) > 0.01 ||
+           Math.abs(currentPan.x - userViewport.pan.x) > 10 ||
+           Math.abs(currentPan.y - userViewport.pan.y) > 10)) {
+        
+        cy.viewport({
+          zoom: userViewport.zoom,
+          pan: userViewport.pan
+        });
+      }
+    }, 200);
+    
+    // For zoom button handlers
+    cy.on('wheelzoom', (event) => {
+      // Ensure zoom stays within bounds
+      const zoom = cy.zoom();
+      if (zoom <= cy.minZoom() || zoom >= cy.maxZoom()) {
+        event.preventDefault();
+      }
+    });
+  };
 
   // Set up event handlers separately to avoid recreating on every state change
   useEffect(() => {
@@ -220,7 +298,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
     
     // Remove all existing elements
     cy.elements().remove();
-
+  
     // First, assign node clusters based on connectivity
     const clusters = assignClusters(data);
     
@@ -261,12 +339,12 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
       });
     });
     
-    // Apply layout - modified cola layout to get better spread and visibility
+    // Apply cola layout with physics for interactive force-directed behavior
     const layout = cy.layout({
-      name: 'cola' as any,
+      name: 'cola',
       animate: true,
       refresh: 1,
-      maxSimulationTime: 5000,
+      maxSimulationTime: 7000,
       nodeSpacing: function() { return 50; },
       edgeLength: function(edge: any) {
         // Stronger connections = shorter edges
@@ -287,34 +365,23 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         }
         return { x: 0, y: 0 };
       },
-      gravity: 0.6,
-      fit: true,
-      padding: 30,
-      randomize: false,
-      avoidOverlap: true,
-      infinite: false,
-      // Higher quality but slower layout
-      unconstrIter: 10,
-      userConstIter: 15,
-      allConstIter: 20,
-      // Stop callback
-      stop: function() {
-        // Ensure edges are visible
-        cy.edges().style('opacity', 0.8);
+      // *** Physics parameters - key for interactive feel ***
+      gravity: 0.3,              // Lower = more spread out
+      padding: 30,               // Padding around nodes
+      avoidOverlap: true,        // Prevent node overlap
+      randomize: false,          // Start with deterministic layout
+      unconstrIter: 10,          // Iterations of unconstrained algorithm
+      userConstIter: 15,         // Iterations of user-constrained algorithm
+      allConstIter: 20,          // Iterations of all-constrained algorithm
+      
+      // *** Key physics parameters for dragging ***
+      handleDisconnected: true,  // Handle disconnected nodes
+      convergenceThreshold: 0.001, // When to stop the simulation
+      flow: {                    // Use flow field effect for cleaner layouts
+        enabled: true,          
+        friction: 0.6           // Lower = more movement after dragging
       },
-      ready: function() {
-        // Initialize edges with full opacity
-        cy.edges().style('opacity', 0.8);
-        
-        // Add a small random offset to nodes to prevent perfect grid alignments
-        cy.nodes().positions(function(node, i) {
-          const position = node.position();
-          return {
-            x: position.x + (Math.random() - 0.5) * 20,
-            y: position.y + (Math.random() - 0.5) * 20
-          };
-        });
-      }
+      infinite: true             // Keep physics simulation running - CRITICAL for interactive feel
     } as any);
     
     layout.run();
@@ -323,69 +390,77 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
     addBackgroundEffects();
     
     // Add subtle animation to nodes
-    setTimeout(() => {
-      animateNodes();
-    }, 2000);
+    animateNodes();
+    
+    // Setup grab and drag physics behavior
+    setupDragBehavior(cy);
     
   }, [data]); // Only re-run when data changes
   
   // Function to assign clusters and colors to nodes based on connectivity
   const assignClusters = (graphData: GraphData) => {
-    // Map to store node cluster assignments: nodeId -> { clusterId, clusterSize, colorIndex }
-    const nodeClusters = new Map<string, { clusterId: string, clusterSize: number, colorIndex: number }>();
+    // Simplified clustering that focuses on strongest connections
+    const nodeClusters = new Map();
+    const clusterSizes = new Map();
     
-    // Map to track cluster sizes: clusterId -> size
-    const clusterSizes = new Map<string, number>();
-    
-    // Map to assign colors to clusters: clusterId -> colorIndex
-    const clusterColors = new Map<string, number>();
-    
-    // Initialize cluster mapping - each node starts in its own cluster
+    // Initialize each node in its own cluster
     graphData.nodes.forEach(node => {
-      nodeClusters.set(node.id, { clusterId: node.id, clusterSize: 1, colorIndex: 0 });
+      nodeClusters.set(node.id, { 
+        clusterId: node.id, 
+        colorIndex: 0 
+      });
       clusterSizes.set(node.id, 1);
     });
     
-    // First pass: build the clusters
-    graphData.edges.forEach(edge => {
-      const sourceCluster = nodeClusters.get(edge.source)!.clusterId;
-      const targetCluster = nodeClusters.get(edge.target)!.clusterId;
+    // Sort edges by strength (strongest first)
+    const sortedEdges = [...graphData.edges].sort((a, b) => b.strength - a.strength);
+    
+    // Merge clusters based on strong connections
+    sortedEdges.forEach(edge => {
+      const sourceCluster = nodeClusters.get(edge.source).clusterId;
+      const targetCluster = nodeClusters.get(edge.target).clusterId;
       
-      if (sourceCluster !== targetCluster) {
-        // Merge clusters - keep the larger one
-        const sourceSize = clusterSizes.get(sourceCluster) || 1;
-        const targetSize = clusterSizes.get(targetCluster) || 1;
-        
-        if (sourceSize >= targetSize) {
-          // Merge target into source
-          mergeIntoClusters(graphData, nodeClusters, clusterSizes, edge.target, sourceCluster);
-        } else {
-          // Merge source into target
-          mergeIntoClusters(graphData, nodeClusters, clusterSizes, edge.source, targetCluster);
+      // Skip if already in same cluster
+      if (sourceCluster === targetCluster) return;
+      
+      // Only merge if connection is strong enough
+      if (edge.strength < 0.2) return;
+      
+      // Determine which cluster to keep (the larger one)
+      const sourceSize = clusterSizes.get(sourceCluster);
+      const targetSize = clusterSizes.get(targetCluster);
+      
+      const keepCluster = sourceSize >= targetSize ? sourceCluster : targetCluster;
+      const mergeCluster = sourceSize >= targetSize ? targetCluster : sourceCluster;
+      
+      // Update all nodes in the merged cluster
+      graphData.nodes.forEach(node => {
+        if (nodeClusters.get(node.id).clusterId === mergeCluster) {
+          nodeClusters.set(node.id, { 
+            clusterId: keepCluster, 
+            colorIndex: nodeClusters.get(node.id).colorIndex 
+          });
         }
-      }
+      });
+      
+      // Update cluster size
+      clusterSizes.set(keepCluster, sourceSize + targetSize);
+      clusterSizes.delete(mergeCluster);
     });
     
-    // Second pass: assign colors to clusters
-    // Find unique clusters
-    const uniqueClusters = new Set<string>();
-    nodeClusters.forEach(({ clusterId }) => {
-      uniqueClusters.add(clusterId);
-    });
+    // Assign colors to clusters - using array methods instead of iterators
+    const uniqueClusters = Array.from(new Set(
+      Array.from(nodeClusters.values()).map(v => v.clusterId)
+    ));
+    const clusterColors = new Map();
     
-    // Sort clusters by size for deterministic coloring
-    const sortedClusters = Array.from(uniqueClusters).sort((a, b) => {
-      return (clusterSizes.get(b) || 0) - (clusterSizes.get(a) || 0);
-    });
-    
-    // Assign colors to clusters - larger ones first, using the spectrum
-    sortedClusters.forEach((clusterId, index) => {
+    uniqueClusters.forEach((clusterId, index) => {
       clusterColors.set(clusterId, index % NODE_COLORS.length);
     });
     
-    // Update node records with cluster colors
+    // Update color indices
     nodeClusters.forEach((value, nodeId) => {
-      const colorIndex = clusterColors.get(value.clusterId) || 0;
+      const colorIndex = clusterColors.get(value.clusterId);
       nodeClusters.set(nodeId, { ...value, colorIndex });
     });
     
@@ -498,38 +573,156 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
     
     animate();
   };
-  
+
+  const setupDragBehavior = (cy: Core) => {
+    let draggedNode: NodeSingular | null = null;
+    let connectedNodes: cytoscape.NodeCollection = cy.collection();
+    
+    cy.on('grab', 'node', function(e) {
+      draggedNode = e.target;
+      if (!draggedNode) return;
+      connectedNodes = draggedNode.neighborhood().nodes();
+      
+      // Visual feedback
+      draggedNode.style({
+        'border-width': 3,
+        'border-color': 'white'
+      });
+    });
+    
+    cy.on('drag', 'node', throttle(function(e) {
+      if (!draggedNode) return;
+      
+     requestAnimationFrame(() => {
+        // Pull connected nodes with diminishing effect
+        connectedNodes.forEach(node => {
+          // Skip the dragged node itself
+          if (!draggedNode) return;
+          if (node.id() === draggedNode.id()) return;
+          
+          // Find connection strength
+          const edge = cy.edges().filter(edge => 
+            (edge.source().id() === draggedNode!.id() && edge.target().id() === node.id()) ||
+            (edge.target().id() === draggedNode!.id() && edge.source().id() === node.id())
+          );
+          
+          if (edge.length === 0) return;
+          
+          // Use connection strength for pull effect
+          const strength = edge.data('strength') * 0.02 || 0.005;
+          const nodePos = node.position();
+          const draggedPos = draggedNode.position();
+          
+          // Apply pull effect
+          node.position({
+            x: nodePos.x + (draggedPos.x - nodePos.x) * strength,
+            y: nodePos.y + (draggedPos.y - nodePos.y) * strength
+          });
+        });
+     })
+    }, 30));
+    
+    cy.on('free', 'node', function(e) {
+      if (!draggedNode) return;
+      
+      // Reset styles
+      draggedNode.style({
+        'border-width': 2,
+        'border-color': draggedNode.data('borderColor')
+      });
+      
+      // Reset variables
+      draggedNode = null;
+      connectedNodes = cy.collection();
+    });
+  };
+
+
   // Animate nodes with subtle movement
   const animateNodes = () => {
     if (!cyRef.current) return;
     
     const cy = cyRef.current;
     
-    // Add subtle randomized movement to nodes
+    // Apply subtle random movement to keep graph alive
+    setInterval(() => {
+      // Only apply jitter if graph is not being interacted with
+      if (cy.nodes().filter(':grabbed').length === 0) {
+        // Add tiny random movements to random nodes
+        cy.nodes().forEach(node => {
+          if (Math.random() > 0.7) {  // Only affect ~30% of nodes each time
+            const jitter = (Math.random() - 0.5) * 1;
+            const pos = node.position();
+            node.position({
+              x: pos.x + jitter,
+              y: pos.y + jitter
+            });
+          }
+        });
+      }
+    }, 2000);
+    
+    // Occasionally add pulse effects to random nodes
+    setInterval(() => {
+      if (!cyRef.current) return;
+      if (cy.nodes().filter(':grabbed').length === 0) {
+        const nodes = cy.nodes();
+        if (nodes.length === 0) return;
+        
+        const randomNodeIndex = Math.floor(Math.random() * nodes.length);
+        const randomNode = nodes[randomNodeIndex];
+        
+        // Don't animate if node is selected or being dragged
+        if (randomNode.selected() || randomNode.grabbed()) return;
+        
+        // Add a subtle pulse effect
+        randomNode.animate({
+          style: { 
+            'width': randomNode.width() * 1.1, 
+            'height': randomNode.height() * 1.1,
+            'border-width': 3
+          }
+        }, {
+          duration: 400,
+          easing: 'ease-in-sine',
+          complete: function() {
+            randomNode.animate({
+              style: { 
+                'width': randomNode.width() / 1.1, 
+                'height': randomNode.height() / 1.1,
+                'border-width': 2
+              }
+            }, {
+              duration: 400,
+              easing: 'ease-out-sine'
+            });
+          }
+        });
+      }
+    }, 1000);
+    
+    // Continuous subtle movement for all nodes
     cy.nodes().forEach(node => {
-      const randomDelay = Math.random() * 8000;
-      const randomDuration = 3000 + Math.random() * 5000;
-      
-      setTimeout(() => {
-        animateNode(node, randomDuration);
-      }, randomDelay);
+      continuousNodeAnimation(node);
     });
   };
-  
+
   // Subtle animation for nodes
-  const animateNode = (node: any, duration: number) => {
-    if (!cyRef.current) return;
+  const animateNode = (node: any) => {
+    if (!cyRef.current || !node) return;
+    
+    // Don't animate if node is being dragged or is locked
+    if (node.grabbed() || node.locked()) return;
     
     // Original position
     const originalPos = node.position();
     
-    // Don't animate if node is being dragged
-    if (node.grabbed()) return;
-    
-    // Small random movement
-    const offsetX = (Math.random() - 0.5) * 10;
-    const offsetY = (Math.random() - 0.5) * 10;
-    
+    // Small random movement (different for each node)
+    const offsetX = (Math.random() - 0.5) * 15;
+    const offsetY = (Math.random() - 0.5) * 15;
+    const duration = 2000 + Math.random() * 4000; // Random duration for more natural movement
+  
+    // First animation - move away from original position
     node.animate({
       position: { x: originalPos.x + offsetX, y: originalPos.y + offsetY },
       style: { opacity: 1 }
@@ -537,20 +730,108 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
       duration: duration / 2,
       easing: 'ease-in-out-sine',
       complete: function() {
+        // Second animation - move back toward original position but not exactly
+        // This creates a perpetual "floating" effect
+        const returnOffsetX = (Math.random() - 0.5) * 5;
+        const returnOffsetY = (Math.random() - 0.5) * 5;
+        
         node.animate({
-          position: { x: originalPos.x, y: originalPos.y }
+          position: { x: originalPos.x + returnOffsetX, y: originalPos.y + returnOffsetY }
         }, {
           duration: duration / 2,
           easing: 'ease-in-out-sine',
           complete: function() {
-            // Continue animation with random delay
+            // Continue animation with a short delay
             setTimeout(() => {
-              animateNode(node, duration);
-            }, Math.random() * 3000);
+              // Recursive call ensures animation continues indefinitely
+              animateNode(node);
+            }, 100 + Math.random() * 500);
           }
         });
       }
     });
+  };
+
+  const continuousNodeAnimation = (node: any) => {
+    if (!cyRef.current || !node) return;
+    
+    // Don't animate if node is being dragged or is locked
+    if (node.grabbed() || node.locked()) {
+      // Try again later
+      setTimeout(() => continuousNodeAnimation(node), 1000);
+      return;
+    }
+    
+    // Original position
+    const originalPos = node.position();
+    
+    // Small random movement
+    const offsetX = (Math.random() - 0.5) * 10;
+    const offsetY = (Math.random() - 0.5) * 10;
+    const duration = 3000 + Math.random() * 3000;
+    
+    // Animate to new position
+    node.animate({
+      position: { x: originalPos.x + offsetX, y: originalPos.y + offsetY }
+    }, {
+      duration: duration,
+      easing: 'ease-in-out-sine',
+      complete: function() {
+        // Small delay before next animation
+        setTimeout(() => {
+          if (cyRef.current && node && !node.grabbed()) {
+            continuousNodeAnimation(node);
+          }
+        }, 100);
+      }
+    });
+  };
+
+  // TODO:
+  const setupContinuousAnimation = () => {
+    if (!cyRef.current) return;
+    
+    // Start initial animation
+    animateNodes();
+    
+    // Add randomized "pulse" effect to random nodes occasionally
+    setInterval(() => {
+      if (!cyRef.current) return;
+      
+      // Select a random node
+      const nodes = cyRef.current.nodes();
+      if (nodes.length === 0) return;
+      
+      const randomNodeIndex = Math.floor(Math.random() * nodes.length);
+      const randomNode = nodes[randomNodeIndex];
+      
+      // Don't animate if node is selected or being dragged
+      if (randomNode.selected() || randomNode.grabbed()) return;
+      
+      // Add a subtle pulse effect
+      randomNode.animate({
+        style: { 
+          'width': randomNode.width() * 1.2, 
+          'height': randomNode.height() * 1.2,
+          'border-width': 3
+        }
+      }, {
+        duration: 400,
+        easing: 'ease-in-sine',
+        complete: function() {
+          randomNode.animate({
+            style: { 
+              'width': randomNode.width() / 1.2, 
+              'height': randomNode.height() / 1.2,
+              'border-width': 2
+            }
+          }, {
+            duration: 400,
+            easing: 'ease-out-sine'
+          });
+        }
+      });
+    }, 500); // Every 5 seconds, pulse a random node
   };
 
   // Format date for display
@@ -573,13 +854,16 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
     }
   };
   
-  // Function to reset view (fit graph to viewport)
+
+  // Update reset button to use this flag
   const handleResetView = () => {
     if (cyRef.current) {
-      cyRef.current.fit(undefined, 50); // 50px padding
-      cyRef.current.center();
+      // Pass a flag in a way TypeScript accepts
+      const options = { reset: true };
+      cyRef.current.fit(options as any, 50);
     }
   };
+  
 
   // Determine if sidebar should be visible
   const displayNode = selectedNode || (!isSidebarPinned && hoveredNode);
