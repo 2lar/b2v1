@@ -43,7 +43,7 @@ const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
 
   return (
     <div className="note-form-container">
-      <h2><FaBrain /> Add New Thought</h2>
+      <h2><FaBrain /> Add Thought</h2>
       
       <form className="note-form" onSubmit={handleSubmit}>
         {error && (
@@ -60,7 +60,7 @@ const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
         />
         
         <button type="submit" disabled={isSubmitting}>
-          <FaPaperPlane /> {isSubmitting ? 'Adding...' : 'Add Thought'}
+          <FaPaperPlane /> {isSubmitting ?? 'Adding...'}
         </button>
       </form>
     </div>

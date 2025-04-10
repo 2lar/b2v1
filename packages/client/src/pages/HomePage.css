@@ -1,5 +1,5 @@
 .home-page {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -10,6 +10,17 @@
   color: transparent;
   font-weight: 700;
   margin-bottom: 20px;
+}
+
+/* New layout with sidebar */
+.home-content {
+  display: flex;
+  gap: 20px;
+}
+
+.notes-main {
+  flex: 1;
+  min-width: 0; /* Ensures the container can shrink properly */
 }
 
 .notes-container {
@@ -28,6 +39,23 @@
 .notes-container h2 svg {
   margin-right: 10px;
   color: var(--accent-primary);
+}
+
+.show-all-button {
+  margin-left: auto;
+  background-color: transparent;
+  border: 1px solid var(--accent-primary);
+  color: var(--accent-primary);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.show-all-button:hover {
+  background-color: var(--accent-primary);
+  color: white;
 }
 
 .notes-list {
@@ -131,4 +159,33 @@
   background-color: var(--bg-secondary);
   border-radius: 20px;
   border: 1px solid var(--border-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .home-page {
+    padding: 0 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-content {
+    flex-direction: column;
+  }
+  
+  /* Show sidebar differently on mobile - as tabs or dropdown */
+  .mobile-category-selector {
+    display: block;
+    margin-bottom: 20px;
+  }
+  
+  .pagination-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  
+  .pagination-info {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
 }
