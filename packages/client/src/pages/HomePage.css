@@ -1,6 +1,7 @@
 .home-page {
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
 }
 
 .home-page h1 {
@@ -10,16 +11,19 @@
   color: transparent;
   font-weight: 700;
   margin-bottom: 20px;
+  text-align: center; /* Center the title */
 }
 
 /* New layout with sidebar */
 .home-content {
   display: flex;
   gap: 20px;
+  position: relative;
 }
 
 .notes-main {
-  flex: 1;
+  width: 800px;
+  margin: 0 auto; /* Center the main content */
   min-width: 0; /* Ensures the container can shrink properly */
 }
 
@@ -162,21 +166,36 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 1200px) {
+  .notes-main {
+    width: calc(100% - 260px);
+    margin: 0 0 0 260px; /* Account for the sidebar */
+  }
+}
+
 @media (max-width: 992px) {
   .home-page {
     padding: 0 15px;
   }
+  
+  .notes-main {
+    width: calc(100% - 230px);
+    margin: 0 0 0 230px;
+  }
 }
 
 @media (max-width: 768px) {
-  .home-content {
-    flex-direction: column;
+  .notes-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    margin-bottom: 20px;
   }
   
-  /* Show sidebar differently on mobile - as tabs or dropdown */
-  .mobile-category-selector {
-    display: block;
-    margin-bottom: 20px;
+  .notes-main {
+    width: 100%;
+    margin: 0;
   }
   
   .pagination-btn {
@@ -187,5 +206,24 @@
   .pagination-info {
     font-size: 12px;
     padding: 4px 10px;
+  }
+  
+  /* Add a toggle button for mobile */
+  .sidebar-toggle {
+    display: block;
+    margin-bottom: 15px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-weight: 500;
+  }
+  
+  .sidebar-toggle svg {
+    margin-right: 8px;
   }
 }

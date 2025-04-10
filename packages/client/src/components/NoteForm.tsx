@@ -41,9 +41,18 @@ const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Check if Enter key is pressed without Shift
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevent default new line
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+    // If Shift+Enter is pressed, it will create a new line by default
+  };
+
   return (
     <div className="note-form-container">
-      <h2><FaBrain /> Add Thought</h2>
+      <h2><FaBrain /> Add New Thought</h2>
       
       <form className="note-form" onSubmit={handleSubmit}>
         {error && (
@@ -55,12 +64,13 @@ const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="What's on your mind? Add your thoughts here to expand your knowledge network..."
+          onKeyDown={handleKeyDown}
+          placeholder="What's on your mind? Add your thoughts here to expand your knowledge network... (Press Enter to submit, Shift+Enter for new line)"
           disabled={isSubmitting}
         />
         
         <button type="submit" disabled={isSubmitting}>
-          <FaPaperPlane /> {isSubmitting ?? 'Adding...'}
+          <FaPaperPlane /> {isSubmitting ? 'Adding...' : 'Add Thought'}
         </button>
       </form>
     </div>

@@ -135,7 +135,7 @@ const NotesSidebar: React.FC<NotesSidebarProps> = ({
   return (
     <div className="notes-sidebar">
       <div className="sidebar-header">
-        <h3>Categories</h3>
+        <h3>Directory</h3>
         <button className="add-category-btn" title="Add Category">
           <FaPlus />
         </button>
