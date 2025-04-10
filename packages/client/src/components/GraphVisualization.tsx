@@ -678,33 +678,28 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         // Add a subtle pulse effect
         randomNode.animate({
           style: { 
-            'width': randomNode.width() * 1.1, 
-            'height': randomNode.height() * 1.1,
+            'width': randomNode.width() * 1.2, 
+            'height': randomNode.height() * 1.2,
             'border-width': 3
           }
         }, {
-          duration: 400,
+          duration: 800,
           easing: 'ease-in-sine',
           complete: function() {
             randomNode.animate({
               style: { 
-                'width': randomNode.width() / 1.1, 
-                'height': randomNode.height() / 1.1,
+                'width': randomNode.width() / 1.2, 
+                'height': randomNode.height() / 1.2,
                 'border-width': 2
               }
             }, {
-              duration: 400,
+              duration: 800,
               easing: 'ease-out-sine'
             });
           }
         });
       }
-    }, 1000);
-    
-    // Continuous subtle movement for all nodes
-    cy.nodes().forEach(node => {
-      continuousNodeAnimation(node);
-    });
+    }, 500);
   };
 
   // Subtle animation for nodes
@@ -750,88 +745,6 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         });
       }
     });
-  };
-
-  const continuousNodeAnimation = (node: any) => {
-    if (!cyRef.current || !node) return;
-    
-    // Don't animate if node is being dragged or is locked
-    if (node.grabbed() || node.locked()) {
-      // Try again later
-      setTimeout(() => continuousNodeAnimation(node), 1000);
-      return;
-    }
-    
-    // Original position
-    const originalPos = node.position();
-    
-    // Small random movement
-    const offsetX = (Math.random() - 0.5) * 10;
-    const offsetY = (Math.random() - 0.5) * 10;
-    const duration = 3000 + Math.random() * 3000;
-    
-    // Animate to new position
-    node.animate({
-      position: { x: originalPos.x + offsetX, y: originalPos.y + offsetY }
-    }, {
-      duration: duration,
-      easing: 'ease-in-out-sine',
-      complete: function() {
-        // Small delay before next animation
-        setTimeout(() => {
-          if (cyRef.current && node && !node.grabbed()) {
-            continuousNodeAnimation(node);
-          }
-        }, 100);
-      }
-    });
-  };
-
-  // TODO:
-  const setupContinuousAnimation = () => {
-    if (!cyRef.current) return;
-    
-    // Start initial animation
-    animateNodes();
-    
-    // Add randomized "pulse" effect to random nodes occasionally
-    setInterval(() => {
-      if (!cyRef.current) return;
-      
-      // Select a random node
-      const nodes = cyRef.current.nodes();
-      if (nodes.length === 0) return;
-      
-      const randomNodeIndex = Math.floor(Math.random() * nodes.length);
-      const randomNode = nodes[randomNodeIndex];
-      
-      // Don't animate if node is selected or being dragged
-      if (randomNode.selected() || randomNode.grabbed()) return;
-      
-      // Add a subtle pulse effect
-      randomNode.animate({
-        style: { 
-          'width': randomNode.width() * 1.2, 
-          'height': randomNode.height() * 1.2,
-          'border-width': 3
-        }
-      }, {
-        duration: 400,
-        easing: 'ease-in-sine',
-        complete: function() {
-          randomNode.animate({
-            style: { 
-              'width': randomNode.width() / 1.2, 
-              'height': randomNode.height() / 1.2,
-              'border-width': 2
-            }
-          }, {
-            duration: 400,
-            easing: 'ease-out-sine'
-          });
-        }
-      });
-    }, 500); // Every 5 seconds, pulse a random node
   };
 
   // Format date for display
