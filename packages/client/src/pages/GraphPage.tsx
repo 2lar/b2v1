@@ -86,9 +86,9 @@ const GraphPage: React.FC = () => {
             <p>
               <FaProjectDiagram /> Connections: {graphData.edges.length}
             </p>
-            <p className="graph-tip">
+            {/* <p className="graph-tip">
               <FaInfoCircle /> Tip: Click on a node to see its content. Stronger connections appear as brighter, thicker lines.
-            </p>
+            </p> */}
           </div>
           
           <div className="graph-visualization-container">

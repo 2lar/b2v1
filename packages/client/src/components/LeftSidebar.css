@@ -1,0 +1,128 @@
+.left-sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: var(--nav-bg);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-logo {
+  padding-top: 20px;
+  padding-bottom: 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-logo h2 {
+  background: linear-gradient(90deg, var(--accent-primary), #9b59b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 0;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  margin-bottom: 5px;
+}
+
+.sidebar-settings {
+  border-top: 1px solid var(--border-color);
+  padding: 10px 0;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.sidebar-link:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--accent-primary);
+}
+
+.sidebar-link.active {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.sidebar-icon {
+  margin-right: 15px;
+  font-size: 1.2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .left-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .sidebar-logo {
+    flex-shrink: 0;
+    border-bottom: none;
+    border-right: 1px solid var(--border-color);
+    padding: 10px;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .sidebar-nav ul {
+    display: flex;
+    align-items: center;
+  }
+
+  .sidebar-nav li {
+    margin-bottom: 0;
+    margin-right: 10px;
+  }
+
+  .sidebar-settings {
+    border-top: none;
+    border-left: 1px solid var(--border-color);
+  }
+
+  .sidebar-link {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+  }
+
+  .sidebar-icon {
+    margin-right: 0;
+    margin-bottom: 5px;
+  }
+}

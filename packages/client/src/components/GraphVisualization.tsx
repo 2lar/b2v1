@@ -678,9 +678,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
         // Add a subtle pulse effect
         randomNode.animate({
           style: { 
-            'width': randomNode.width() * 1.2, 
-            'height': randomNode.height() * 1.2,
-            'border-width': 3
+            'width': randomNode.width() * 1.1, 
+            'height': randomNode.height() * 1.1,
+            'border-width': 4
           }
         }, {
           duration: 800,
@@ -688,8 +688,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data }) => {
           complete: function() {
             randomNode.animate({
               style: { 
-                'width': randomNode.width() / 1.2, 
-                'height': randomNode.height() / 1.2,
+                'width': randomNode.width() / 1.1, 
+                'height': randomNode.height() / 1.1,
                 'border-width': 2
               }
             }, {
