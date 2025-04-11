@@ -1,5 +1,5 @@
 .left-sidebar {
-  width: 250px;
+  width: 220px; /* Reduced from 250px to match App.css */
   height: 100vh;
   background-color: var(--nav-bg);
   color: var(--text-primary);

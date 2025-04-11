@@ -70,7 +70,8 @@ const NoteForm: React.FC<NoteFormProps> = ({ onNoteAdded }) => {
         />
         
         <button type="submit" disabled={isSubmitting}>
-          <FaPaperPlane /> {isSubmitting ? 'Adding...' : 'Add Thought'}
+          {/* <FaPaperPlane /> */}
+          Add
         </button>
       </form>
     </div>

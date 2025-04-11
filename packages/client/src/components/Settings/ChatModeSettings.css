@@ -1,5 +1,5 @@
 .chat-mode-settings {
-    background-color: white;
+    background-color: #333;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 20px;
@@ -10,7 +10,7 @@
     margin-top: 0;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #333;
   }
   
   .settings-description {
@@ -27,7 +27,7 @@
   }
   
   .mode-card {
-    border: 1px solid #eee;
+    border: 1px solid #333;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
@@ -40,9 +40,9 @@
   }
   
   .mode-card-header {
-    background-color: #f8f9fa;
+    background-color: #333;
     padding: 15px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #333;
   }
   
   .mode-card-header h4 {
@@ -62,7 +62,7 @@
   }
   
   .future-feature {
-    background-color: #edf7ff;
+    background-color: #333;
     border-left: 4px solid #3498db;
     padding: 15px;
     border-radius: 4px;

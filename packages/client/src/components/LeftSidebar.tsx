@@ -11,15 +11,16 @@ import './LeftSidebar.css';
 interface LeftSidebarProps {
   currentPath: string;
   onNavigate: (path: string) => void;
+  className?: string;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ currentPath, onNavigate }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ currentPath, onNavigate, className = '' }) => {
   const isActive = (path: string): boolean => {
     return currentPath === path;
   };
   
   return (
-    <div className="left-sidebar">
+    <div className={`left-sidebar ${className}`}>
       <div className="sidebar-logo">
         <h2>Second Brain</h2>
       </div>

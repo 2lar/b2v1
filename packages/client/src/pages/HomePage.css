@@ -1,7 +1,9 @@
 .home-page {
-  max-width: 1200px;
+  max-width: 1000px; /* Reduced from 1200px */
   margin: 0 auto;
   position: relative;
+  padding: 0 15px;
+  transform: translateX(-140px);
 }
 
 .home-page h1 {
@@ -11,19 +13,21 @@
   color: transparent;
   font-weight: 700;
   margin-bottom: 20px;
-  text-align: center; /* Center the title */
+  text-align: center;
+  transform: translateX(100px);
 }
 
-/* New layout with sidebar */
+/* Layout with sidebar and main content */
 .home-content {
   display: flex;
+  /* justify-content: flex-start; */
   gap: 20px;
   position: relative;
 }
 
 .notes-main {
-  width: 800px;
-  margin: 0 auto; /* Center the main content */
+  flex: 1;
+  max-width: 850px;
   min-width: 0; /* Ensures the container can shrink properly */
 }
 
@@ -165,39 +169,128 @@
   border: 1px solid var(--border-color);
 }
 
-/* Responsive adjustments */
+/* Directory toggle button for mobile */
+.directory-toggle {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 15px auto;
+  padding: 12px 15px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 500;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive layout */
 @media (max-width: 1200px) {
+  .home-page {
+    transform: translateX(-100px); /* Reduce the shift slightly */
+  }
+  
+  .home-page h1 {
+    transform: translateX(70px); /* Adjust title position */
+  }
+}
+
+/* For screens below 1400px */
+@media (max-width: 1500px) {
+  .home-page {
+    transform: none; /* Remove transform completely */
+    max-width: 900px; /* Reduce max width */
+    transform: translateX(-100px);
+  }
+  
+  .home-page h1 {
+    transform: translateX(70px);; /* Remove transform */
+  }
+  
+  .notes-sidebar {
+    width: 190px; /* Make sidebar slightly smaller */
+  }
+  
   .notes-main {
-    width: calc(100% - 260px);
-    margin: 0 0 0 260px; /* Account for the sidebar */
+    max-width: 680px; /* Limit width */
   }
 }
 
 @media (max-width: 992px) {
+  /* Remove transforms entirely on small screens */
   .home-page {
-    padding: 0 15px;
+    transform: none;
+    max-width: 90%;
+    margin: 0 auto;
   }
   
-  .notes-main {
-    width: calc(100% - 230px);
-    margin: 0 0 0 230px;
+  .home-page h1 {
+    transform: none;
+  }
+  
+  /* Stack components vertically with proper spacing */
+  .home-content {
+    flex-direction: column;
+    gap: 30px;
+  }
+  
+  /* Make sidebar properly sized */
+  .notes-sidebar {
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
   }
 }
 
 @media (max-width: 768px) {
+  .home-page {
+    transform: none; /* Remove transform completely */
+    padding: 0 10px;
+  }
+  
+  .home-page h1 {
+    transform: none; /* Remove transform completely */
+  }
+  
+  .directory-toggle {
+    transform: none;
+  }
+}
+
+.directory-toggle svg:first-child {
+  color: var(--accent-primary);
+  margin-right: 8px;
+}
+
+/* Responsive layout */
+@media (max-width: 992px) {
+  .home-content {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .directory-toggle {
+    display: flex;
+  }
+  
   .notes-sidebar {
-    position: static;
     width: 100%;
-    height: auto;
-    max-height: 200px;
+    max-width: 800px;
+    margin-right: 15px;
     margin-bottom: 20px;
   }
   
-  .notes-main {
-    width: 100%;
-    margin: 0;
+  .notes-sidebar.collapsed {
+    display: none;
   }
-  
+}
+
+@media (max-width: 768px) {
   .pagination-btn {
     padding: 6px 12px;
     font-size: 14px;
@@ -206,24 +299,5 @@
   .pagination-info {
     font-size: 12px;
     padding: 4px 10px;
-  }
-  
-  /* Add a toggle button for mobile */
-  .sidebar-toggle {
-    display: block;
-    margin-bottom: 15px;
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    font-weight: 500;
-  }
-  
-  .sidebar-toggle svg {
-    margin-right: 8px;
   }
 }

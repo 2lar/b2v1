@@ -4,7 +4,17 @@ import { notesApi, categoryApi } from '../services/api';
 import NoteForm from '../components/NoteForm';
 import NoteItem from '../components/NoteItem';
 import NotesSidebar from '../components/NotesSidebar';
-import { FaStream, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSpinner, FaLightbulb } from 'react-icons/fa';
+import { 
+  FaStream, 
+  FaChevronLeft, 
+  FaChevronRight, 
+  FaExclamationTriangle, 
+  FaSpinner, 
+  FaLightbulb,
+  FaFolder,
+  FaAngleDown,
+  FaAngleUp
+} from 'react-icons/fa';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
@@ -13,6 +23,8 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 992);
+  const [directoryVisible, setDirectoryVisible] = useState<boolean>(window.innerWidth >= 992);
   const [pagination, setPagination] = useState<{
     currentPage: number;
     totalPages: number;
@@ -27,6 +39,24 @@ const HomePage: React.FC = () => {
     hasPrevPage: false
   });
 
+  // Set up responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+      
+      // Auto-show directory on larger screens, auto-hide on mobile
+      if (!mobile && !directoryVisible) {
+        setDirectoryVisible(true);
+      } else if (mobile && !isMobile) {
+        setDirectoryVisible(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile, directoryVisible]);
+
   // Fetch notes based on currently selected category or recent notes
   useEffect(() => {
     if (selectedCategoryId) {
@@ -35,6 +65,10 @@ const HomePage: React.FC = () => {
       fetchRecentNotes(page);
     }
   }, [page, selectedCategoryId]);
+
+  const toggleDirectory = () => {
+    setDirectoryVisible(!directoryVisible);
+  };
 
   const fetchRecentNotes = async (pageNum: number) => {
     try {
@@ -109,6 +143,11 @@ const HomePage: React.FC = () => {
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
     setPage(1); // Reset to first page when changing categories
+    
+    // Auto-hide directory on mobile after selection
+    if (isMobile) {
+      setDirectoryVisible(false);
+    }
   };
 
   const handleShowAllNotes = () => {
@@ -120,11 +159,23 @@ const HomePage: React.FC = () => {
     <div className="home-page">
       <h1>Your Thoughts</h1>
       
+      {/* Directory toggle button (only visible on mobile) */}
+      <button className="directory-toggle" onClick={toggleDirectory}>
+        <span>
+          <FaFolder /> {directoryVisible ? 'Hide Directory' : 'Show Directory'}
+        </span>
+        {directoryVisible ? <FaAngleUp /> : <FaAngleDown />}
+      </button>
+      
       <div className="home-content">
-        <NotesSidebar 
-          onCategorySelect={handleCategorySelect}
-          selectedCategoryId={selectedCategoryId}
-        />
+        {directoryVisible && (
+          <div className="notes-sidebar">
+            <NotesSidebar 
+              onCategorySelect={handleCategorySelect}
+              selectedCategoryId={selectedCategoryId}
+            />
+          </div>
+        )}
         
         <div className="notes-main">
           <NoteForm onNoteAdded={handleNoteAdded} />
